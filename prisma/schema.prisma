@@ -36,6 +36,8 @@ model Video {
   classId   Int
   title     String
   videoUrl  String
+  classNumber String
+  videoPosterUrl String
   order     Int
   progress  UserProgress[] // 👈 back-relation to UserProgress
   createdAt DateTime       @default(now())

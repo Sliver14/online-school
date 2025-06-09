@@ -18,8 +18,7 @@ async function main() {
             order: 1,
             videos: {
                 create: [
-                    { title: 'What is Faith?', videoUrl: 'https://video1.com', order: 1 },
-                    { title: 'Living by Faith', videoUrl: 'https://video2.com', order: 2 },
+                    { title: 'What is Faith?', videoUrl: 'https://video1.com', videoPosterUrl: '', classNumber: '', order: 1 },
                 ],
             },
             assessments: {
