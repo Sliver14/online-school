@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int              @id @default(autoincrement())
+  email       String           @unique
+  name        String?
+  password    String
+  progress    UserProgress[]
+  assessments UserAssessment[]
+  exams       UserExam[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Class {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  videos      Video[]
+  assessments Assessment[]
+  order       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Video {
+  id        Int            @id @default(autoincrement())
+  class     Class          @relation(fields: [classId], references: [id])
+  classId   Int
+  title     String
+  videoUrl  String
+  order     Int
+  progress  UserProgress[] // 👈 back-relation to UserProgress
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Assessment {
+  id          Int              @id @default(autoincrement())
+  class       Class            @relation(fields: [classId], references: [id])
+  classId     Int
+  title       String
+  questions   Question[]
+  submissions UserAssessment[] // 👈 back-relation to UserAssessment
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Question {
+  id            Int        @id @default(autoincrement())
+  assessment    Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId  Int
+  text          String
+  options       Json
+  correctAnswer String
+}
+
+model UserProgress {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  video     Video    @relation(fields: [videoId], references: [id])
+  videoId   Int
+  watchedAt DateTime @default(now())
+}
+
+model UserAssessment {
+  id           Int        @id @default(autoincrement())
+  user         User       @relation(fields: [userId], references: [id])
+  userId       Int
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  assessmentId Int
+  score        Float
+  completedAt  DateTime   @default(now())
+}
+
+model Exam {
+  id        Int            @id @default(autoincrement())
+  title     String
+  questions ExamQuestion[]
+  results   UserExam[] // 👈 back-relation to UserExam
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model ExamQuestion {
+  id            Int    @id @default(autoincrement())
+  exam          Exam   @relation(fields: [examId], references: [id])
+  examId        Int
+  text          String
+  options       Json
+  correctAnswer String
+}
+
+model UserExam {
+  id      Int      @id @default(autoincrement())
+  user    User     @relation(fields: [userId], references: [id])
+  userId  Int
+  exam    Exam     @relation(fields: [examId], references: [id])
+  examId  Int
+  score   Float
+  takenAt DateTime @default(now())
+}
