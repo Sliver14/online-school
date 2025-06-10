@@ -14,6 +14,7 @@ interface Course {
     duration: string;
     videoUrl: string;
     posterUrl: string;
+    classNumber: string;
     assessment: Assessment[];
 }
 
@@ -308,7 +309,7 @@ const OnlineSchoolPlatform = () => {
 
                     {/* Classes */}
                     <div className="p-4">
-                        <h3 className="text-sm font-medium text-gray-900 mb-3">Classes</h3>
+                        <h3 className="text-sm font-medium text-gray-900 mb-3">CLASSES</h3>
                         <div className="space-y-2">
                             {courses.map((course) => (
                                 <button
@@ -331,7 +332,7 @@ const OnlineSchoolPlatform = () => {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center">
                           <span className="text-sm font-medium">
-                            {course.title}
+                            {course.classNumber}
                           </span>
                                             {isClassCompleted(course.id) && (
                                                 <CheckCircle className={`h-4 w-4 ml-2 ${
@@ -490,10 +491,11 @@ const OnlineSchoolPlatform = () => {
                             </div>
 
                             {/* Video Section */}
-                            <div className="bg-white rounded-xl shadow-lg md:p-6 md:mb-8">
+                            <div className="bg-white rounded-xl shadow-lg mb-8">
                                 <VideoPlayer
-                                    key={getCurrentCourse()?.id} // Add this line
-                                    className="w-full h-full mb-6"
+                                    // key={getCurrentCourse()?.id} // Add this line
+                                    key={`${getCurrentCourse().id}-${getCurrentCourse().videoUrl}-${getCurrentCourse().posterUrl}`}
+                                    className="w-full h-full mb-4 md:mb-6"
                                     videoUrl={getCurrentCourse()?.videoUrl || ""}
                                     poster={getCurrentCourse()?.posterUrl || "default-poster.jpg"}
                                     title={`${getCurrentCourse()?.title} - Video Lesson`}
@@ -584,7 +586,7 @@ const OnlineSchoolPlatform = () => {
                                     <span>Previous Class</span>
                                 </button>
 
-                                <div className="flex space-x-2">
+                                <div className="hidden xl:flex space-x-2">
                                     {courses.map((course, index) => (
                                         <div
                                             key={course.id}

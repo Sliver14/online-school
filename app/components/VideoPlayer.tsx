@@ -331,7 +331,7 @@
 
 "use client"
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, RotateCcw, Loader2 } from 'lucide-react';
 
 interface VideoPlayerProps {
     videoUrl: string;
@@ -355,6 +355,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const [duration, setDuration] = useState(0);
     const [showControls, setShowControls] = useState(true);
     const [videoEnded, setVideoEnded] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -367,15 +368,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             setIsPlaying(false);
             onVideoEnd?.();
         };
+        const handleLoadStart = () => setIsLoading(true);
+        const handleCanPlay = () => setIsLoading(false);
+        const handleWaiting = () => setIsLoading(true);
+        const handlePlaying = () => setIsLoading(false);
 
         video.addEventListener('timeupdate', handleTimeUpdate);
         video.addEventListener('durationchange', handleDurationChange);
         video.addEventListener('ended', handleEnded);
+        video.addEventListener('loadstart', handleLoadStart);
+        video.addEventListener('canplay', handleCanPlay);
+        video.addEventListener('waiting', handleWaiting);
+        video.addEventListener('playing', handlePlaying);
 
         return () => {
             video.removeEventListener('timeupdate', handleTimeUpdate);
             video.removeEventListener('durationchange', handleDurationChange);
             video.removeEventListener('ended', handleEnded);
+            video.removeEventListener('loadstart', handleLoadStart);
+            video.removeEventListener('canplay', handleCanPlay);
+            video.removeEventListener('waiting', handleWaiting);
+            video.removeEventListener('playing', handlePlaying);
         };
     }, [onVideoEnd]);
 
@@ -447,6 +460,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 Your browser does not support the video tag.
             </video>
 
+            {/* Loading Spinner */}
+            {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black opacity-50">
+                    <div className="text-center text-white">
+                        <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-indigo-400" />
+                        {/*<p className="text-sm text-gray-300">Loading video...</p>*/}
+                    </div>
+                </div>
+            )}
+
             {/* Video Ended Overlay */}
             {videoEnded && (
                 <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center">
@@ -467,13 +490,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             )}
 
             {/* Play Button Overlay */}
-            {!isPlaying && !videoEnded && (
+            {!isPlaying && !videoEnded && !isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
                     <button
                         onClick={togglePlay}
                         className="bg-black bg-opacity-50 text-white rounded-full p-4 hover:bg-opacity-75 transition duration-200"
                     >
-                        <Play className="h-12 w-12 ml-1" />
+                        <Play className="h-8 w-8 md:h-12 md:w-12 ml-1" />
                     </button>
                 </div>
             )}
@@ -522,7 +545,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     </div>
 
                     <div className="flex items-center space-x-4">
-                        <span className="text-white text-sm font-medium">{title}</span>
+                        <span className="hidden md:block text-white md:text-sm md:font-medium">{title}</span>
                         <button
                             onClick={toggleFullscreen}
                             className="text-white hover:text-indigo-400 transition duration-200"
@@ -534,25 +557,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
 
             <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #4f46e5;
-          cursor: pointer;
-          border: 2px solid #ffffff;
-        }
-        
-        .slider::-moz-range-thumb {
-          height: 16px;
-          width: 16px;
-          border-radius: 50%;
-          background: #4f46e5;
-          cursor: pointer;
-          border: 2px solid #ffffff;
-        }
-      `}</style>
+                .slider::-webkit-slider-thumb {
+                    appearance: none;
+                    height: 16px;
+                    width: 16px;
+                    border-radius: 50%;
+                    background: #4f46e5;
+                    cursor: pointer;
+                    border: 2px solid #ffffff;
+                }
+
+                .slider::-moz-range-thumb {
+                    height: 16px;
+                    width: 16px;
+                    border-radius: 50%;
+                    background: #4f46e5;
+                    cursor: pointer;
+                    border: 2px solid #ffffff;
+                }
+            `}</style>
         </div>
     );
 };
