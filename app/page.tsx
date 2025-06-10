@@ -486,61 +486,17 @@ const OnlineSchoolPlatform = () => {
                                     </div>
                                 </div>
 
-                                {/* Navigation Buttons */}
-                                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                                    <button
-                                        onClick={handlePreviousClass}
-                                        disabled={!canNavigateToPrevious()}
-                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                            canNavigateToPrevious()
-                                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        <ChevronLeft className="h-4 w-4" />
-                                        <span>Previous Class</span>
-                                    </button>
 
-                                    <div className="flex space-x-2">
-                                        {courses.map((course, index) => (
-                                            <div
-                                                key={course.id}
-                                                className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                                                    currentCourse?.id === course.id
-                                                        ? 'bg-indigo-600 scale-125'
-                                                        : isClassCompleted(course.id)
-                                                            ? 'bg-green-500'
-                                                            : isClassUnlocked(course.id)
-                                                                ? 'bg-gray-300'
-                                                                : 'bg-gray-200'
-                                                }`}
-                                            />
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        onClick={handleNextClass}
-                                        disabled={!canNavigateToNext()}
-                                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                            canNavigateToNext()
-                                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        <span>Next Class</span>
-                                        <ChevronRight className="h-4 w-4" />
-                                    </button>
-                                </div>
                             </div>
 
                             {/* Video Section */}
                             <div className="bg-white rounded-xl shadow-lg md:p-6 md:mb-8">
                                 <VideoPlayer
+                                    key={getCurrentCourse()?.id} // Add this line
                                     className="w-full h-full mb-6"
                                     videoUrl={getCurrentCourse()?.videoUrl || ""}
                                     poster={getCurrentCourse()?.posterUrl || "default-poster.jpg"}
                                     title={`${getCurrentCourse()?.title} - Video Lesson`}
-                                    // onVideoEnd={() => getCurrentCourse() && handleVideoComplete(getCurrentCourse().id)}
                                     onVideoEnd={() => {
                                         const course = getCurrentCourse();
                                         if (course) {
@@ -555,6 +511,8 @@ const OnlineSchoolPlatform = () => {
                                     </div>
                                 )}
                             </div>
+
+
 
                             {/* Assessment Section */}
                             <div className="bg-white rounded-xl shadow-lg p-6">
@@ -609,6 +567,52 @@ const OnlineSchoolPlatform = () => {
                                         )}
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Navigation Buttons */}
+                            <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                                <button
+                                    onClick={handlePreviousClass}
+                                    disabled={!canNavigateToPrevious()}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition duration-200 ${
+                                        canNavigateToPrevious()
+                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    <span>Previous Class</span>
+                                </button>
+
+                                <div className="flex space-x-2">
+                                    {courses.map((course, index) => (
+                                        <div
+                                            key={course.id}
+                                            className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                                                currentCourse?.id === course.id
+                                                    ? 'bg-indigo-600 scale-125'
+                                                    : isClassCompleted(course.id)
+                                                        ? 'bg-green-500'
+                                                        : isClassUnlocked(course.id)
+                                                            ? 'bg-gray-300'
+                                                            : 'bg-gray-200'
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+
+                                <button
+                                    onClick={handleNextClass}
+                                    disabled={!canNavigateToNext()}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition duration-200 ${
+                                        canNavigateToNext()
+                                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                    <span>Next Class</span>
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
                     )}

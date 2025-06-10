@@ -454,7 +454,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         <div className="mb-4">
                             <RotateCcw className="h-16 w-16 mx-auto mb-4 text-green-400" />
                             <h3 className="text-xl font-semibold mb-2">Video Completed!</h3>
-                            <p className="text-gray-300">Great job finishing the lesson.</p>
+                            <p className="text-gray-300">Great job finishing the class.</p>
                         </div>
                         <button
                             onClick={restartVideo}
