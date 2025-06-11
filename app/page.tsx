@@ -491,11 +491,11 @@ const OnlineSchoolPlatform = () => {
                             </div>
 
                             {/* Video Section */}
-                            <div className="bg-white rounded-xl shadow-lg mb-8">
+                            <div className="bg-white rounded-xl shadow-lg mb-8 ">
                                 <VideoPlayer
                                     // key={getCurrentCourse()?.id} // Add this line
                                     key={`${getCurrentCourse().id}-${getCurrentCourse().videoUrl}-${getCurrentCourse().posterUrl}`}
-                                    className="w-full h-full mb-4 md:mb-6"
+                                    className="w-full h-full mb-6 md:mb-6"
                                     videoUrl={getCurrentCourse()?.videoUrl || ""}
                                     poster={getCurrentCourse()?.posterUrl || "default-poster.jpg"}
                                     title={`${getCurrentCourse()?.title} - Video Lesson`}
@@ -507,7 +507,7 @@ const OnlineSchoolPlatform = () => {
                                     }}
                                 />
                                 {getCurrentCourse() && isVideoWatched(getCurrentCourse().id) && (
-                                    <div className="mt-4 flex items-center text-green-600">
+                                    <div className="p-4 flex items-center text-green-600">
                                         <CheckCircle className="h-5 w-5 mr-2" />
                                         <span className="font-medium">Video completed!</span>
                                     </div>

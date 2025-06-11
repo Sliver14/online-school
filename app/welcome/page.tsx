@@ -13,10 +13,8 @@ const Welcome = () => {
   const [clickedButton, setClickedButton] = useState(null);
 
   const handleGetStarted = () => {
-    setClickedButton('getStarted');
-    router.replace('/');
-    console.log('Get Started clicked - redirect to signin');
-    // Simulate navigation
+    // setClickedButton('getStarted');
+      router.push('/auth');
     setTimeout(() => setClickedButton(null), 300);
   };
 
@@ -30,11 +28,7 @@ const Welcome = () => {
 
   // On your welcome page button click:
   const handleLogin = () => {
-    const clientId = "ce6b68f3-bf6c-456b-a672-507ee6eb2a0b";
-    const redirectUri = encodeURIComponent("http://localhost:3000/auth/callback");
-    const scopes = encodeURIComponent(JSON.stringify(["kingschat"]));
-    const authUrl = `https://accounts.kingsch.at/?client_id=${clientId}&scopes=${scopes}&redirect_uri=${redirectUri}`;
-    window.location.href = authUrl;
+    router.push('/auth');
   };
 
   return (

@@ -10,8 +10,15 @@ datasource db {
 model User {
   id          Int              @id @default(autoincrement())
   email       String           @unique
-  name        String?
-  password    String
+  firstName        String?
+  lastName         String?
+  phoneNumber      String?
+  zone             String?
+  church           String?
+  country          String?
+  password         String?
+  verificationCode String?
+  verified         Boolean  @default(false)
   progress    UserProgress[]
   assessments UserAssessment[]
   exams       UserExam[]
