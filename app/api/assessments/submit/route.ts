@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
+    // Skip database operations during build
+    if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+        return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
+    }
+
     try {
         const { userId, assessmentId, score } = await req.json()
 
