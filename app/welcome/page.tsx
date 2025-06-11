@@ -1,10 +1,8 @@
 "use client"
 import React, {useState} from 'react'
 import Image from 'next/image';
-import { ArrowRight, LogIn, Users, Star, Heart } from 'lucide-react';
+import { ArrowRight, LogIn} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import kingsChatWebSdk from 'kingschat-web-sdk';
-import 'kingschat-web-sdk/dist/stylesheets/style.min.css';
 
 const Welcome = () => {
   const router = useRouter();

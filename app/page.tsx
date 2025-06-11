@@ -1,10 +1,8 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Play, CheckCircle, Lock, BookOpen, Award, BarChart3, User, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle, Lock, BookOpen, Award, BarChart3, User, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import VideoPlayer from "@/app/components/VideoPlayer";
-import ExaminationComponent from "@/app/components/ExaminationComponent";
 import axios from "axios";
 import {useUser} from "@/app/context/UserContext";
 
@@ -49,11 +47,11 @@ const OnlineSchoolPlatform = () => {
     const [showAssessment, setShowAssessment] = useState(false);
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [showExamination, setShowExamination] = useState(false);
-    const [examinationScore, setExaminationScore] = useState<number | null>(null);
+    const [showExamination, setShowExamination] = useState<boolean>(false);
+
+    // const [examinationScore, setExaminationScore] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
     const { userId } = useUser();
 
     useEffect(() => {
@@ -109,9 +107,9 @@ const OnlineSchoolPlatform = () => {
         return progress ? progress.hasWatchedVideo : false;
     };
 
-    const isAssessmentPassed = (classId: number) => {
-        return assessmentScores[classId] >= 80;
-    };
+    // const isAssessmentPassed = (classId: number) => {
+    //     return assessmentScores[classId] >= 80;
+    // };
 
     const isClassCompleted = (classId: number) => {
         const progress = userProgress.find(p => p.classId === classId);
@@ -192,30 +190,30 @@ const OnlineSchoolPlatform = () => {
         }
     };
 
-    const handleStartExamination = async () => {
-        const completedClassesCount = userProgress.filter(p => p.completed).length;
-        if (completedClassesCount < courses.length) return;
-
-        try {
-            // Create a default answer set for the examination
-            const questions = courses.flatMap(course => course.assessment[0]?.questions || []);
-            const answers = questions.map(q => ({
-                questionId: q.id,
-                answer: 0 // default answer
-            }));
-
-            const response = await axios.post('/api/user-progress/submit-examination', {
-                userId,
-                answers
-            });
-
-            setExaminationScore(response.data.score);
-            setShowExamination(true);
-        } catch (error) {
-            setError('Failed to start examination');
-            console.error(error);
-        }
-    };
+    // const handleStartExamination = async () => {
+    //     const completedClassesCount = userProgress.filter(p => p.completed).length;
+    //     if (completedClassesCount < courses.length) return;
+    //
+    //     try {
+    //         // Create a default answer set for the examination
+    //         const questions = courses.flatMap(course => course.assessment[0]?.questions || []);
+    //         const answers = questions.map(q => ({
+    //             questionId: q.id,
+    //             answer: 0 // default answer
+    //         }));
+    //
+    //         const response = await axios.post('/api/user-progress/submit-examination', {
+    //             userId,
+    //             answers
+    //         });
+    //
+    //         setExaminationScore(response.data.score);
+    //         setShowExamination(true);
+    //     } catch (error) {
+    //         setError('Failed to start examination');
+    //         console.error(error);
+    //     }
+    // };
 
     // Navigation functions
     const handlePreviousClass = () => {
@@ -257,7 +255,12 @@ const OnlineSchoolPlatform = () => {
         showAssessment ? 'assessment' :
             'course';
 
-    if (loading) return <div className="p-4">Loading...</div>;
+    if (loading) return (
+        <div className="flex flex-col w-screen gap-5 text-xl h-screen justify-center items-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <h1>Loading...</h1>
+        </div>
+    );
     if (error) return <div className="p-4 text-red-500">{error}</div>;
 
     return (
@@ -352,32 +355,30 @@ const OnlineSchoolPlatform = () => {
                             ))}
                         </div>
 
-                        {/* Examination */}
-                        <div className="p-4">
-                            <h3 className="text-sm font-medium text-gray-900 mb-3">Examination</h3>
-                            <div className="space-y-2">
-                                <button
-                                    onClick={handleStartExamination}
-                                    disabled={userProgress.filter(p => p.completed).length < courses.length}
-                                    className={`w-full text-left p-3 rounded-lg border-2 transition-all duration-200 ${
-                                        userProgress.filter(p => p.completed).length === courses.length
-                                            ? 'border-transparent hover:bg-gradient-to-r hover:from-blue-50 hover:to-orange-50 hover:border-blue-200'
-                                            : 'border-transparent opacity-50 cursor-not-allowed'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
+
+                    </div>
+                    {/*EXAMINATION*/}
+                    <div className="p-4">
+                        <h3 className="text-sm font-medium text-gray-900 mb-3">EXAMINATION</h3>
+                        <div className="space-y-2">
+                            <button
+                                onClick={()=> setShowExamination(true)}
+                                disabled={userProgress.filter(p => p.completed).length < courses.length}
+                                className={`w-full text-left p-3 rounded-lg border-2 transition-all duration-200 ${
+                                    userProgress.filter(p => p.completed).length === courses.length
+                                        ? 'border-transparent hover:bg-gradient-to-r hover:from-blue-50 hover:to-orange-50 hover:border-blue-200'
+                                        : 'border-transparent opacity-50 cursor-not-allowed'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
                                             <span className="text-sm font-medium text-gray-900">
                                               Final Exam
                                             </span>
-                                            {examinationScore !== null && examinationScore >= 70 && (
-                                                <CheckCircle className="h-4 w-4 text-green-500 ml-2" />
-                                            )}
-                                        </div>
                                     </div>
-                                    <p className="text-xs text-gray-600 mt-1">Bible Knowledge Test</p>
-                                </button>
-                            </div>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">Second Quarter</p>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -393,10 +394,9 @@ const OnlineSchoolPlatform = () => {
                 {/* Main Content */}
                 <div className="flex-1 p-4 md:p-8">
                     {currentView === 'examination' ? (
-                        <ExaminationComponent
-                            onClose={() => setShowExamination(false)}
-                            userId={userId}
-                        />
+                        <div>
+                            <h1>START EXAM NOW</h1>
+                        </div>
                     ) : currentView === 'assessment' ? (
                         <div className="max-w-3xl mx-auto">
                             <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
@@ -591,7 +591,7 @@ const OnlineSchoolPlatform = () => {
                                 </button>
 
                                 <div className="hidden xl:flex space-x-2">
-                                    {courses.map((course, index) => (
+                                    {courses.map((course) => (
                                         <div
                                             key={course.id}
                                             className={`w-3 h-3 rounded-full transition-all duration-200 ${

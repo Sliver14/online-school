@@ -1,27 +1,56 @@
 "use client"
 import { useState, useRef, useEffect } from 'react';
-import axios from "axios";
-import {useRouter} from "next/navigation";
+import axios, { AxiosError } from "axios";
+import { useRouter } from "next/navigation";
+
+// Define interfaces for better type safety
+interface PopupState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  message?: string;
+}
 
 export default function VerificationPage() {
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [popup, setPopup] = useState({ show: false, message: '', type: '' });
-  const [errorState, setErrorState] = useState(false);
-  const email = localStorage.getItem("email");
-  const inputRefs = useRef([]);
+  const [code, setCode] = useState<string[]>(['', '', '', '', '', '']);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [resendTimer, setResendTimer] = useState<number>(0);
+  const [popup, setPopup] = useState<PopupState>({ show: false, message: '', type: 'info' });
+  const [errorState, setErrorState] = useState<boolean>(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+
+  // Get email from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedEmail = localStorage.getItem("email");
+      setEmail(storedEmail);
+
+      if (!storedEmail) {
+        showPopup('No email found. Please try signing up again.', 'error');
+        setTimeout(() => {
+          router.push('/auth');
+        }, 2000);
+      }
+    }
+  }, [router]);
 
   // Timer effect for resend button
   useEffect(() => {
-    let interval;
+    let interval: NodeJS.Timeout | undefined;
     if (resendTimer > 0) {
       interval = setInterval(() => {
         setResendTimer(prev => prev - 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [resendTimer]);
 
   // Auto-hide popup effect
@@ -34,7 +63,7 @@ export default function VerificationPage() {
     }
   }, [popup.show]);
 
-  const handleInput = (value, index) => {
+  const handleInput = (value: string, index: number): void => {
     const numericValue = value.replace(/[^0-9]/g, '');
 
     if (numericValue.length <= 1) {
@@ -55,20 +84,20 @@ export default function VerificationPage() {
     }
   };
 
-  const handleKeyDown = (event, index) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, index: number): void => {
     if (event.key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handlePaste = (event) => {
+  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>): void => {
     event.preventDefault();
 
-    const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+    const pastedData = event.clipboardData.getData('text');
     const digits = pastedData.replace(/[^0-9]/g, '').slice(0, 6);
 
     if (digits.length > 0) {
-      const newCode = ['', '', '', '', '', ''];
+      const newCode: string[] = ['', '', '', '', '', ''];
 
       for (let i = 0; i < digits.length && i < 6; i++) {
         newCode[i] = digits[i];
@@ -88,7 +117,12 @@ export default function VerificationPage() {
     }
   };
 
-  const verifyCode = async (codeToVerify = code.join('')) => {
+  const verifyCode = async (codeToVerify: string = code.join('')): Promise<void> => {
+    if (!email) {
+      showPopup('Email not found. Please try signing up again.', 'error');
+      return;
+    }
+
     if (codeToVerify.length !== 6) {
       showPopup('Please enter all 6 digits', 'error');
       return;
@@ -97,12 +131,44 @@ export default function VerificationPage() {
     setIsVerifying(true);
 
     try {
-      await axios.post("/api/auth/signup/verify", { email, code: codeToVerify });
+      await axios.post("/api/auth/signup/verify", {
+        email,
+        code: codeToVerify
+      });
+
       showPopup('Account created successfully! Redirecting...', 'success');
-      router.push('/auth');
+
+      // Clear email from localStorage after successful verification
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("email");
+      }
+
+      setTimeout(() => {
+        router.push('/auth');
+      }, 1500);
+
     } catch (error) {
-      console.log(error.message);
-      showPopup('Invalid verification code. Please try again.', 'error');
+      console.error('Verification error:', error);
+
+      let errorMessage = 'Invalid verification code. Please try again.';
+
+      if (error instanceof AxiosError) {
+        const errorData = error.response?.data as ApiErrorResponse;
+        errorMessage = errorData?.error || errorData?.message || errorMessage;
+
+        // Handle specific error cases
+        if (error.response?.status === 400) {
+          errorMessage = 'Invalid verification code. Please check and try again.';
+        } else if (error.response?.status === 404) {
+          errorMessage = 'User not found. Please try signing up again.';
+        } else if (error.response?.status === 410) {
+          errorMessage = 'Verification code has expired. Please request a new one.';
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      showPopup(errorMessage, 'error');
       setErrorState(true);
       clearInputs();
     } finally {
@@ -110,35 +176,73 @@ export default function VerificationPage() {
     }
   };
 
-  const resendCode = async () => {
-    if (resendTimer > 0) return;
+  const resendCode = async (): Promise<void> => {
+    if (resendTimer > 0 || !email) return;
 
     try {
-      // You might want to add an API call here to actually resend the code
       await axios.post("/api/auth/resendcode", { email });
       showPopup('Verification code sent successfully!', 'info');
       clearInputs();
       setResendTimer(60);
     } catch (error) {
-      showPopup('Failed to resend code. Please try again.', 'error');
+      console.error('Resend code error:', error);
+
+      let errorMessage = 'Failed to resend code. Please try again.';
+
+      if (error instanceof AxiosError) {
+        const errorData = error.response?.data as ApiErrorResponse;
+        errorMessage = errorData?.error || errorData?.message || errorMessage;
+
+        // Handle specific error cases
+        if (error.response?.status === 404) {
+          errorMessage = 'User not found. Please try signing up again.';
+        } else if (error.response?.status === 429) {
+          errorMessage = 'Too many requests. Please wait before requesting another code.';
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
+      showPopup(errorMessage, 'error');
     }
   };
 
-  const clearInputs = () => {
+  const clearInputs = (): void => {
     setCode(['', '', '', '', '', '']);
     setErrorState(false);
     inputRefs.current[0]?.focus();
   };
 
-  const showPopup = (message, type) => {
+  const showPopup = (message: string, type: 'success' | 'error' | 'info'): void => {
     setPopup({ show: true, message, type });
   };
 
-  const goBack = () => {
+  const goBack = (): void => {
     if (confirm('Are you sure you want to go back? You will need to restart the verification process.')) {
+      // Clear email from localStorage when going back
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("email");
+      }
       router.back();
     }
   };
+
+  // Show loading state while checking for email
+  if (typeof window !== 'undefined' && email === null) {
+    return (
+        <div className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-5" style={{ backgroundImage: "url('/welcome/bg welcome app.png')"}}>
+          <div className="bg-white rounded-3xl p-8 md:p-10 shadow-2xl w-full max-w-md">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-4xl text-white mx-auto mb-8">
+                🔐
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-4">Loading...</h1>
+              <p className="text-gray-600">Please wait while we verify your session.</p>
+            </div>
+          </div>
+        </div>
+    );
+  }
 
   return (
       <div className="min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-5" style={{ backgroundImage: "url('/welcome/bg welcome app.png')"}}>
@@ -157,8 +261,10 @@ export default function VerificationPage() {
         <div className="bg-white rounded-3xl p-8 md:p-10 shadow-2xl w-full max-w-md relative">
           {/* Back Button */}
           <button
+              type="button"
               onClick={goBack}
               className="absolute top-5 left-5 text-2xl text-gray-600 hover:text-gray-800 transition-colors duration-300"
+              title="Go back"
           >
             ←
           </button>
@@ -173,7 +279,11 @@ export default function VerificationPage() {
             Verify Your Code
           </h1>
           <p className="text-gray-600 text-center mb-10 leading-relaxed">
-            We've sent a 6-digit verification code to your email address. Please enter it below.
+            We&apos;ve sent a 6-digit verification code to{' '}
+            <span className="font-semibold text-gray-800">
+              {email ? email.replace(/(.{2}).*(@.*)/, '$1***$2') : 'your email'}
+            </span>
+            . Please enter it below.
           </p>
 
           {/* Code Input */}
@@ -181,30 +291,47 @@ export default function VerificationPage() {
             {code.map((digit, index) => (
                 <input
                     key={index}
-                    ref={el => inputRefs.current[index] = el}
+                    ref={el => {
+                      if (inputRefs.current) {
+                        inputRefs.current[index] = el;
+                      }
+                    }}
                     type="text"
-                    maxLength="1"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
                     value={digit}
                     onChange={(e) => handleInput(e.target.value, index)}
                     onKeyDown={(e) => handleKeyDown(e, index)}
                     onPaste={handlePaste}
-                    className={`w-12 h-14 text-center text-gray-800 text-2xl font-semibold border-2 rounded-xl outline-none transition-all duration-300 ${
+                    disabled={isVerifying}
+                    className={`w-12 h-14 text-center text-gray-800 text-2xl font-semibold border-2 rounded-xl outline-none transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                         errorState
                             ? 'border-red-500 animate-pulse'
                             : 'border-gray-300 focus:border-indigo-500 focus:scale-105 focus:shadow-md'
                     }`}
                     autoFocus={index === 0}
+                    aria-label={`Digit ${index + 1} of verification code`}
                 />
             ))}
           </div>
 
           {/* Verify Button */}
           <button
+              type="button"
               onClick={() => verifyCode()}
-              disabled={isVerifying}
+              disabled={isVerifying || code.some(digit => digit === '')}
               className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none mb-6"
           >
-            {isVerifying ? 'Verifying...' : 'Verify Code'}
+            {isVerifying ? (
+                <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                Verifying...
+              </span>
+            ) : 'Verify Code'}
           </button>
 
           {/* Resend Section */}
@@ -215,10 +342,13 @@ export default function VerificationPage() {
             </span>
             ) : (
                 <span>
-              Didn't receive the code?{' '}
+            Didn&apos;t receive the code?{' '}
+
                   <button
+                      type="button"
                       onClick={resendCode}
-                      className="text-indigo-600 font-semibold underline hover:text-indigo-800 transition-colors duration-300"
+                      disabled={!email}
+                      className="text-indigo-600 font-semibold underline hover:text-indigo-800 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                 Resend Code
               </button>

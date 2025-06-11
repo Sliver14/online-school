@@ -1,17 +1,32 @@
 "use client"
 import React, { useState } from 'react';
-import {User, Mail, Lock, Eye, EyeOff, Heart, Star, Users, Stars, School, Pencil, AlertCircle, Loader2} from 'lucide-react';
+import {User, Mail, Lock, Eye, EyeOff, Star, Users, Pencil, AlertCircle, Loader2} from 'lucide-react';
 import axios, { AxiosError } from "axios";
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 
+// Define interfaces for better type safety
+interface FormData {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    lastName: string;
+    firstName: string;
+}
+
+interface ApiErrorResponse {
+    error?: string;
+    message?: string;
+}
+
 export default function WelcomeScreen() {
-    const [isLogin, setIsLogin] = useState(true);
-    const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState<string>();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLogin, setIsLogin] = useState<boolean>(true);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const router = useRouter();
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
         password: '',
@@ -20,7 +35,7 @@ export default function WelcomeScreen() {
         firstName: '',
     });
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
@@ -31,7 +46,7 @@ export default function WelcomeScreen() {
         }
     };
 
-    const validateForm = () => {
+    const validateForm = (): boolean => {
         if (!formData.email || !formData.password) {
             setError('Please fill in all required fields');
             return false;
@@ -62,7 +77,7 @@ export default function WelcomeScreen() {
         return true;
     };
 
-    const handleSignin = async () => {
+    const handleSignin = async (): Promise<void> => {
         if (!validateForm()) return;
 
         setIsLoading(true);
@@ -75,10 +90,14 @@ export default function WelcomeScreen() {
             });
             router.replace("/");
         } catch (error) {
-            console.log(error);
+            console.error('Sign-in error:', error);
+
             if (error instanceof AxiosError) {
-                const errorMessage = error.response?.data?.error ?? "Sign-in failed";
+                const errorData = error.response?.data as ApiErrorResponse;
+                const errorMessage = errorData?.error || errorData?.message || "Sign-in failed. Please try again.";
                 setError(errorMessage);
+            } else if (error instanceof Error) {
+                setError(error.message || "An unexpected error occurred during sign-in");
             } else {
                 setError("An unknown error occurred during sign-in");
             }
@@ -87,7 +106,7 @@ export default function WelcomeScreen() {
         }
     };
 
-    const handleSignup = async () => {
+    const handleSignup = async (): Promise<void> => {
         if (!validateForm()) return;
 
         setIsLoading(true);
@@ -104,11 +123,17 @@ export default function WelcomeScreen() {
             router.push("/auth/verify");
 
         } catch (error) {
+            console.error('Sign-up error:', error);
+
             if (error instanceof AxiosError) {
-                const errorMessage = error.response?.data?.error ?? "Sign-up failed";
+                const errorData = error.response?.data as ApiErrorResponse;
+                const errorMessage = errorData?.error || errorData?.message || "Sign-up failed. Please try again.";
 
                 if (errorMessage.includes("User not verified")) {
-                    localStorage.setItem("email", formData.email);
+                    // Store email for verification process
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem("email", formData.email);
+                    }
                     setError("User not verified. Redirecting to verification...");
 
                     try {
@@ -117,17 +142,16 @@ export default function WelcomeScreen() {
                         });
                     } catch (resendError) {
                         console.error("Failed to resend verification code:", resendError);
+                        setError("Failed to resend verification code. Please try again.");
                     }
-                    // Redirect after short delay
-                    // setTimeout(() => {
-                    //     router.push("/auth/verify");
-                    // }, 1000); // Optional shorter delay
-                    // // router.push("/auth/verify");
-                    router.push("/auth/verify");
 
+                    // Redirect to verification page
+                    router.push("/auth/verify");
                 } else {
                     setError(errorMessage);
                 }
+            } else if (error instanceof Error) {
+                setError(error.message || "An unexpected error occurred during sign-up");
             } else {
                 setError("An unknown error occurred during sign-up");
             }
@@ -136,8 +160,7 @@ export default function WelcomeScreen() {
         }
     };
 
-
-    const handleFormSubmit = (e) => {
+    const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
         e.preventDefault();
         if (isLogin) {
             handleSignin();
@@ -146,7 +169,7 @@ export default function WelcomeScreen() {
         }
     };
 
-    const toggleAuthMode = () => {
+    const toggleAuthMode = (): void => {
         setIsLogin(!isLogin);
         setError('');
         setFormData({
@@ -157,6 +180,10 @@ export default function WelcomeScreen() {
             lastName: '',
             firstName: '',
         });
+    };
+
+    const handleForgotPasswordClick = (): void => {
+        router.push("/auth/forgotpassword");
     };
 
     return (
@@ -210,6 +237,7 @@ export default function WelcomeScreen() {
                     {/* Toggle Buttons */}
                     <div className="flex bg-white/10 rounded-xl p-1 mb-6">
                         <button
+                            type="button"
                             onClick={toggleAuthMode}
                             disabled={isLoading}
                             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 ${
@@ -221,6 +249,7 @@ export default function WelcomeScreen() {
                             Sign In
                         </button>
                         <button
+                            type="button"
                             onClick={toggleAuthMode}
                             disabled={isLoading}
                             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 ${
@@ -337,9 +366,14 @@ export default function WelcomeScreen() {
                                     />
                                     Remember me
                                 </label>
-                                <a onClick={() => {router.push("/auth/forgotpassword")}} className="text-yellow-300 cursor-pointer hover:text-yellow-200 transition-colors">
+                                <button
+                                    type="button"
+                                    onClick={handleForgotPasswordClick}
+                                    className="text-yellow-300 cursor-pointer hover:text-yellow-200 transition-colors disabled:opacity-50"
+                                    disabled={isLoading}
+                                >
                                     Forgot password?
-                                </a>
+                                </button>
                             </div>
                         )}
 

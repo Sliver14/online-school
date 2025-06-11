@@ -15,6 +15,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "User not found" }, { status: 400 });
         }
 
+        // ✅ Check if user has a verification code before comparing
+        if (!user.verificationCode) {
+            return NextResponse.json({ error: "No verification code found. Please request a new code." }, { status: 400 });
+        }
+
         // Compare verification code
         const isMatch = bcrypt.compareSync(code.toString(), user.verificationCode);
 
@@ -26,7 +31,7 @@ export async function POST(req: NextRequest) {
         await prisma.user.update({
             where: { email },
             data: {
-                verificationCode: "",
+                verificationCode: null, // ✅ Set to null instead of empty string for consistency
                 verified: true,
             },
         });

@@ -6,10 +6,12 @@ const prisma = new PrismaClient();
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { userId: string } }
+    { params }: { params: Promise<{ userId: string }> } // ✅ Fixed: params is now a Promise
 ) {
     try {
-        const userId = parseInt(params.userId);
+        // ✅ Await the params Promise
+        const resolvedParams = await params;
+        const userId = parseInt(resolvedParams.userId);
 
         // Get all classes
         const classes = await prisma.class.findMany({

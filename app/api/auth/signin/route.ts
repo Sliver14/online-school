@@ -29,6 +29,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "User not verified" }, { status: 400 });
         }
 
+        // ✅ Check if user has a password before comparing
+        if (!user.password) {
+            return NextResponse.json({ error: "Account setup incomplete." }, { status: 400 });
+        }
+
         // Compare passwords
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {

@@ -4,14 +4,32 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// app/api/user-progress/submit-assessment/route.ts
+type SubmitAssessmentRequest = {
+    userId: string;
+    classId: string;
+    answers: Record<string, number>; // questionId as string, user-selected option index as number
+};
+
 export async function POST(request: NextRequest) {
     try {
-        const { userId, classId, answers } = await request.json();
+        const body: SubmitAssessmentRequest = await request.json();
+        const { userId, classId, answers } = body;
+
+        // ✅ Convert string IDs to numbers
+        const userIdNum = parseInt(userId);
+        const classIdNum = parseInt(classId);
+
+        // ✅ Add validation for conversion
+        if (isNaN(userIdNum) || isNaN(classIdNum)) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid user ID or class ID' },
+                { status: 400 }
+            );
+        }
 
         // Get the assessment for this class
         const assessment = await prisma.assessment.findFirst({
-            where: { classId },
+            where: { classId: classIdNum }, // ✅ Use converted number
             include: { questions: true }
         });
 
@@ -27,7 +45,7 @@ export async function POST(request: NextRequest) {
         const totalQuestions = assessment.questions.length;
 
         assessment.questions.forEach(question => {
-            const userAnswer = answers[question.id];
+            const userAnswer = answers[question.id.toString()]; // ✅ Convert question ID to string for lookup
             const options = Array.isArray(question.options)
                 ? question.options
                 : JSON.parse(question.options as string);
@@ -42,7 +60,7 @@ export async function POST(request: NextRequest) {
         // Save the assessment result
         await prisma.userAssessment.create({
             data: {
-                userId,
+                userId: userIdNum, // ✅ Use converted number
                 assessmentId: assessment.id,
                 score
             }

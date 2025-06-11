@@ -1,14 +1,29 @@
-// app/api/user-progress/submit-examination/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type SubmitExaminationRequest = {
+    userId: string;
+    answers: Record<string, number>; // questionId -> selected option index
+};
+
 export async function POST(request: NextRequest) {
     try {
-        const { userId, answers } = await request.json();
+        const body: SubmitExaminationRequest = await request.json();
+        const { userId, answers } = body;
 
-        // Get the exam (assuming there's only one exam)
+        // ✅ Convert userId to number
+        const userIdNum = parseInt(userId);
+
+        // ✅ Add validation for conversion
+        if (isNaN(userIdNum)) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid user ID' },
+                { status: 400 }
+            );
+        }
+
         const exam = await prisma.exam.findFirst({
             include: { questions: true }
         });
@@ -20,18 +35,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Calculate score
         let correctAnswers = 0;
         const totalQuestions = exam.questions.length;
 
         exam.questions.forEach(question => {
-            const answerObj = answers.find((a: any) => a.questionId === question.id);
-            if (answerObj) {
+            // ✅ Convert question ID to string for lookup in answers object
+            const userAnswer = answers[question.id.toString()];
+            if (userAnswer !== undefined) {
                 const options = Array.isArray(question.options)
                     ? question.options
                     : JSON.parse(question.options as string);
 
-                if (options[answerObj.answer] === question.correctAnswer) {
+                if (options[userAnswer] === question.correctAnswer) {
                     correctAnswers++;
                 }
             }
@@ -39,10 +54,9 @@ export async function POST(request: NextRequest) {
 
         const score = Math.round((correctAnswers / totalQuestions) * 100);
 
-        // Save the exam result
         await prisma.userExam.create({
             data: {
-                userId,
+                userId: userIdNum, // ✅ Use converted number
                 examId: exam.id,
                 score
             }

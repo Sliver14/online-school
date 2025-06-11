@@ -1,10 +1,9 @@
 import React from 'react';
-import ExaminationComponent from "@/app/components/ExaminationComponent";
 
-function Examination (props) {
+function Examination () {
     return (
         <div>Examination
-        <ExaminationComponent />
+            Examination
         </div>
     );
 }

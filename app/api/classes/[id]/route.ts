@@ -3,13 +3,14 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// app/api/classes/[id]/route.ts
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> } // ✅ Fixed: params is now a Promise
 ) {
     try {
-        const classId = parseInt(params.id);
+        // ✅ Await the params Promise
+        const resolvedParams = await params;
+        const classId = parseInt(resolvedParams.id);
 
         const classData = await prisma.class.findUnique({
             where: { id: classId },
@@ -36,16 +37,18 @@ export async function GET(
             id: classData.id,
             title: classData.title,
             description: classData.description,
-            duration: "45 min",
-            videoUrl: classData.videos[0]?.videoUrl || "",
-            posterUrl: classData.videos[0]?.title || "",
-            assessment: classData.assessments.map(assessment => ({
+            duration: '45 min',
+            videoUrl: classData.videos[0]?.videoUrl || '',
+            posterUrl: classData.videos[0]?.title || '',
+            assessment: classData.assessments.map((assessment) => ({
                 id: assessment.id,
                 title: assessment.title,
-                questions: assessment.questions.map(q => ({
+                questions: assessment.questions.map((q) => ({
                     id: q.id,
                     question: q.text,
-                    options: Array.isArray(q.options) ? q.options : JSON.parse(q.options as string),
+                    options: Array.isArray(q.options)
+                        ? q.options
+                        : JSON.parse(q.options as string),
                     correctAnswer: q.correctAnswer
                 }))
             }))
