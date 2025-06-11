@@ -101,24 +101,30 @@ export default function WelcomeScreen() {
                 lastName: formData.lastName,
             });
 
-            // Add success redirect here
-            router.push("/auth");
+            router.push("/auth/verify");
 
         } catch (error) {
             if (error instanceof AxiosError) {
                 const errorMessage = error.response?.data?.error ?? "Sign-up failed";
 
                 if (errorMessage.includes("User not verified")) {
-                    localStorage.setItem("pendingEmail", formData.email);
+                    localStorage.setItem("email", formData.email);
                     setError("User not verified. Redirecting to verification...");
+
                     try {
                         await axios.post("/api/auth/resendcode", {
-                            email: formData.email
+                            email: formData.email,
                         });
                     } catch (resendError) {
-                        console.log("Failed to resend verification code:", resendError);
+                        console.error("Failed to resend verification code:", resendError);
                     }
-                    setTimeout(() => router.push("/auth/verify"), 2000);
+                    // Redirect after short delay
+                    // setTimeout(() => {
+                    //     router.push("/auth/verify");
+                    // }, 1000); // Optional shorter delay
+                    // // router.push("/auth/verify");
+                    router.push("/auth/verify");
+
                 } else {
                     setError(errorMessage);
                 }
@@ -129,6 +135,7 @@ export default function WelcomeScreen() {
             setIsLoading(false);
         }
     };
+
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -330,7 +337,7 @@ export default function WelcomeScreen() {
                                     />
                                     Remember me
                                 </label>
-                                <a href="#" className="text-yellow-300 hover:text-yellow-200 transition-colors">
+                                <a onClick={() => {router.push("/auth/forgotpassword")}} className="text-yellow-300 cursor-pointer hover:text-yellow-200 transition-colors">
                                     Forgot password?
                                 </a>
                             </div>
@@ -361,7 +368,7 @@ export default function WelcomeScreen() {
                 {/* Welcome Message */}
                 <div className="text-center mt-6">
                     <p className="text-white/80 text-sm">
-                        🌟 Join thousands of students already learning with us
+                        🌟 Online Replica of the onsite Foundation School.
                     </p>
                 </div>
             </div>

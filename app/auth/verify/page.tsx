@@ -13,7 +13,6 @@ export default function VerificationPage() {
   const inputRefs = useRef([]);
   const router = useRouter();
 
-
   // Timer effect for resend button
   useEffect(() => {
     let interval;
@@ -89,7 +88,7 @@ export default function VerificationPage() {
     }
   };
 
-  const verifyCode = (codeToVerify = code.join('')) => {
+  const verifyCode = async (codeToVerify = code.join('')) => {
     if (codeToVerify.length !== 6) {
       showPopup('Please enter all 6 digits', 'error');
       return;
@@ -97,39 +96,32 @@ export default function VerificationPage() {
 
     setIsVerifying(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      try{
-        await axios.post("/api/auth/signup/verify", {email,code })
-        showPopup('Account created successfully! Redirecting...', 'success');
-        router.push('/auth');
-      }catch(error){
-        console.log(error.message);
-        showPopup('Invalid verification code. Please try again.', 'error');
-        setErrorState(true);
-        clearInputs();
-      }
-      // if (codeToVerify === '123456') {
-      //   showPopup('Account created successfully! Redirecting...', 'success');
-      //   setTimeout(() => {
-      //     // Simulate redirect - in real app, use router.push()
-      //     console.log('Redirecting to dashboard...');
-      //   }, 2000);
-      // } else {
-      //   showPopup('Invalid verification code. Please try again.', 'error');
-      //   setErrorState(true);
-      //   clearInputs();
-      // }
+    try {
+      await axios.post("/api/auth/signup/verify", { email, code: codeToVerify });
+      showPopup('Account created successfully! Redirecting...', 'success');
+      router.push('/auth');
+    } catch (error) {
+      console.log(error.message);
+      showPopup('Invalid verification code. Please try again.', 'error');
+      setErrorState(true);
+      clearInputs();
+    } finally {
       setIsVerifying(false);
-    }, 1500);
+    }
   };
 
-  const resendCode = () => {
+  const resendCode = async () => {
     if (resendTimer > 0) return;
 
-    showPopup('Verification code sent successfully!', 'info');
-    clearInputs();
-    setResendTimer(60);
+    try {
+      // You might want to add an API call here to actually resend the code
+      await axios.post("/api/auth/resendcode", { email });
+      showPopup('Verification code sent successfully!', 'info');
+      clearInputs();
+      setResendTimer(60);
+    } catch (error) {
+      showPopup('Failed to resend code. Please try again.', 'error');
+    }
   };
 
   const clearInputs = () => {
@@ -144,8 +136,7 @@ export default function VerificationPage() {
 
   const goBack = () => {
     if (confirm('Are you sure you want to go back? You will need to restart the verification process.')) {
-      // In real Next.js app, use router.back()
-      window.history.back();
+      router.back();
     }
   };
 
@@ -197,7 +188,7 @@ export default function VerificationPage() {
                     onChange={(e) => handleInput(e.target.value, index)}
                     onKeyDown={(e) => handleKeyDown(e, index)}
                     onPaste={handlePaste}
-                    className={`w-12 h-14 text-center text-2xl font-semibold border-2 rounded-xl outline-none transition-all duration-300 ${
+                    className={`w-12 h-14 text-center text-gray-800 text-2xl font-semibold border-2 rounded-xl outline-none transition-all duration-300 ${
                         errorState
                             ? 'border-red-500 animate-pulse'
                             : 'border-gray-300 focus:border-indigo-500 focus:scale-105 focus:shadow-md'
@@ -237,14 +228,14 @@ export default function VerificationPage() {
         </div>
 
         <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-        .animate-pulse {
-          animation: pulse 0.5s ease-in-out;
-        }
-      `}</style>
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+          }
+          .animate-pulse {
+            animation: pulse 0.5s ease-in-out;
+          }
+        `}</style>
       </div>
   );
 }

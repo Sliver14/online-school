@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import VideoPlayer from "@/app/components/VideoPlayer";
 import ExaminationComponent from "@/app/components/ExaminationComponent";
 import axios from "axios";
+import {useUser} from "@/app/context/UserContext";
 
 interface Course {
     id: number;
@@ -53,42 +54,45 @@ const OnlineSchoolPlatform = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
-    const userId = 1; // You should get this from auth context
+    const { userId } = useUser();
 
     useEffect(() => {
         const loadData = async () => {
-            try {
-                setLoading(true);
+            if (userId){
+                try {
+                    setLoading(true);
 
-                // Load classes
-                const classesResponse = await axios.get("/api/classes");
-                const classesData = classesResponse.data.data;
-                setCourses(classesData);
+                    // Load classes
+                    const classesResponse = await axios.get("/api/classes");
+                    const classesData = classesResponse.data.data;
+                    setCourses(classesData);
 
-                // Load user progress
-                const progressResponse = await axios.get(`/api/user-progress/${userId}`);
-                const progressData = progressResponse.data;
-                setUserProgress(progressData);
+                    // Load user progress
+                    const progressResponse = await axios.get(`/api/user-progress/${userId}`);
+                    const progressData = progressResponse.data;
+                    setUserProgress(progressData);
 
-                // Set current course (first incomplete or first course)
-                const firstIncomplete = progressData.find((p: UserProgressData) => !p.completed);
-                setCurrentCourse(firstIncomplete ? firstIncomplete.course : classesData[0]);
+                    // Set current course (first incomplete or first course)
+                    const firstIncomplete = progressData.find((p: UserProgressData) => !p.completed);
+                    setCurrentCourse(firstIncomplete ? firstIncomplete.course : classesData[0]);
 
-                // Initialize assessment scores
-                const scores: Record<number, number> = {};
-                progressData.forEach((progress: UserProgressData) => {
-                    if (progress.assessmentScores.length > 0) {
-                        scores[progress.classId] = Math.max(...progress.assessmentScores);
-                    }
-                });
-                setAssessmentScores(scores);
+                    // Initialize assessment scores
+                    const scores: Record<number, number> = {};
+                    progressData.forEach((progress: UserProgressData) => {
+                        if (progress.assessmentScores.length > 0) {
+                            scores[progress.classId] = Math.max(...progress.assessmentScores);
+                        }
+                    });
+                    setAssessmentScores(scores);
 
-            } catch (err) {
-                setError('Failed to load data');
-                console.error(err);
-            } finally {
-                setLoading(false);
+                } catch (err) {
+                    setError('Failed to load data');
+                    console.error(err);
+                } finally {
+                    setLoading(false);
+                }
             }
+
         };
 
         loadData();
