@@ -88,7 +88,8 @@ export default function WelcomeScreen() {
                 email: formData.email,
                 password: formData.password,
             });
-            router.replace("/");
+            // router.replace("/");
+            window.location.href = '/';
         } catch (error) {
             console.error('Sign-in error:', error);
 
@@ -151,7 +152,8 @@ export default function WelcomeScreen() {
                     setError(errorMessage);
                 }
             } else if (error instanceof Error) {
-                setError(error.message || "An unexpected error occurred during sign-up");
+                console.log(error.name)
+                setError("An unexpected error occurred during sign-up");
             } else {
                 setError("An unknown error occurred during sign-up");
             }

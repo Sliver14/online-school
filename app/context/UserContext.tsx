@@ -15,6 +15,8 @@ interface UserDetails {
 interface UserContextType {
     userId: string | null;
     userDetails: UserDetails | null;
+    loading: boolean;
+    error: string | null;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -22,10 +24,14 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [userId, setUserId] = useState<string | null>(null);
     const [ userDetails, setUserDetails ] = useState<UserDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchUserId = async () => {
             try {
+                setLoading(true);
+                setError(null);
                 const response = await axios.get("/api/auth/tokenverify", { withCredentials: true });
                 setUserId(response.data.user.id);
                 setUserDetails(response.data.user);
@@ -34,13 +40,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
             } catch (error) {
                 console.error("Error fetching user ID:", error);
+                setError('Failed to verify user');
+                setUserId(null); // Clear userId on error
+            }finally {
+                setLoading(false); // Always set loading to false
             }
         };
         fetchUserId();
     }, []);
 
     return (
-        <UserContext.Provider value={{ userId, userDetails }}>
+        <UserContext.Provider value={{ userId, userDetails, loading, error }}>
             {children}
         </UserContext.Provider>
     );

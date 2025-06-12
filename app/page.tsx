@@ -48,44 +48,52 @@ const OnlineSchoolPlatform = () => {
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showExamination, setShowExamination] = useState<boolean>(false);
-    const [loading, setLoading] = useState(true);
+
+    // Fixed loading states
+    const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [dataLoaded, setDataLoaded] = useState(false); // Add this to prevent re-loading
+    const [dataLoaded, setDataLoaded] = useState(false);
 
-    const { userId } = useUser();
+    // Individual action loading states
+    const [submittingAssessment, setSubmittingAssessment] = useState(false);
+    const [markingVideoWatched, setMarkingVideoWatched] = useState(false);
 
-    // Memoize the loadData function to prevent unnecessary re-renders
+    const { userId, loading: userLoading } = useUser();
+
+    // Improved loadData function
     const loadData = useCallback(async () => {
-        if (!userId || dataLoaded) return; // Prevent loading if already loaded
+        // Wait for user data to load first
+        if (userLoading || !userId || dataLoaded) return;
 
         try {
-            setLoading(true);
+            setDataLoading(true);
             setError(null);
 
-            console.log('Loading data for userId:', userId); // Debug log
+            console.log('Loading data for userId:', userId);
 
-            // Load classes
-            const classesResponse = await axios.get("/api/classes");
+            // Parallel loading for better performance
+            const [classesResponse, progressResponse] = await Promise.all([
+                axios.get("/api/classes"),
+                axios.get(`/api/user-progress/${userId}`)
+            ]);
+
             const classesData = classesResponse.data.data;
+            const progressData = progressResponse.data;
 
             if (!classesData || classesData.length === 0) {
                 throw new Error('No classes data received');
             }
 
             setCourses(classesData);
-            console.log('Classes loaded:', classesData); // Debug log
-
-            // Load user progress
-            const progressResponse = await axios.get(`/api/user-progress/${userId}`);
-            const progressData = progressResponse.data;
             setUserProgress(progressData);
-            console.log('Progress loaded:', progressData); // Debug log
+            console.log('Classes loaded:', classesData);
+            console.log('Progress loaded:', progressData);
 
             // Set current course (first incomplete or first course)
             const firstIncomplete = progressData.find((p: UserProgressData) => !p.completed);
             const courseToSet = firstIncomplete ? firstIncomplete.course : classesData[0];
             setCurrentCourse(courseToSet);
-            console.log('Current course set:', courseToSet); // Debug log
+            console.log('Current course set:', courseToSet);
 
             // Initialize assessment scores
             const scores: Record<number, number> = {};
@@ -96,25 +104,35 @@ const OnlineSchoolPlatform = () => {
             });
             setAssessmentScores(scores);
 
-            setDataLoaded(true); // Mark as loaded
+            setDataLoaded(true);
         } catch (err) {
             console.error('Error loading data:', err);
             setError(`Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+            // Don't set dataLoaded to true on error to allow retry
         } finally {
-            setLoading(false);
+            setDataLoading(false);
         }
-    }, [userId, dataLoaded]);
+    }, [userId, userLoading, dataLoaded]);
 
+    // Improved useEffect with proper dependencies
     useEffect(() => {
-        if (userId && !dataLoaded) {
-            loadData();
+        loadData();
+    }, [loadData]);
+
+    // Reset data when userId changes
+    useEffect(() => {
+        if (userId) {
+            setDataLoaded(false);
+            setError(null);
         }
-    }, [userId, dataLoaded, loadData]);
-
-    // Reset data loaded state when userId changes
-    useEffect(() => {
-        setDataLoaded(false);
     }, [userId]);
+
+    // Enhanced retry function
+    const handleRetry = useCallback(() => {
+        setError(null);
+        setDataLoaded(false);
+        // loadData will be called automatically via useEffect when dataLoaded changes
+    }, []);
 
     const isClassUnlocked = (classId: number) => {
         if (classId === 1) return true;
@@ -132,8 +150,10 @@ const OnlineSchoolPlatform = () => {
         return progress ? progress.completed : false;
     };
 
+    // Enhanced handleVideoComplete with loading state
     const handleVideoComplete = async (classId: number) => {
         try {
+            setMarkingVideoWatched(true);
             await axios.post(`/api/user-progress/video-watched`, {
                 userId,
                 classId
@@ -150,6 +170,8 @@ const OnlineSchoolPlatform = () => {
         } catch (error) {
             console.error('Failed to mark video watched', error);
             setError('Could not update video watch status');
+        } finally {
+            setMarkingVideoWatched(false);
         }
     };
 
@@ -169,10 +191,12 @@ const OnlineSchoolPlatform = () => {
         }));
     };
 
+    // Enhanced handleSubmitAssessment with loading state
     const handleSubmitAssessment = async () => {
         if (!currentAssessment) return;
 
         try {
+            setSubmittingAssessment(true);
             const response = await axios.post('/api/user-progress/submit-assessment', {
                 userId,
                 classId: currentAssessment.id,
@@ -203,6 +227,8 @@ const OnlineSchoolPlatform = () => {
         } catch (error) {
             setError('Failed to submit assessment');
             console.error(error);
+        } finally {
+            setSubmittingAssessment(false);
         }
     };
 
@@ -247,36 +273,41 @@ const OnlineSchoolPlatform = () => {
         showAssessment ? 'assessment' :
             'course';
 
+    // Combined loading state check
+    const isLoading = userLoading || dataLoading;
+
     // Show loading state
-    if (loading) return (
-        <div className="flex flex-col w-screen gap-5 text-xl h-screen justify-center items-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <h1>Loading your courses...</h1>
-        </div>
-    );
+    if (isLoading) {
+        return (
+            <div className="flex flex-col w-screen gap-5 text-xl h-screen justify-center items-center">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <h1>
+                    {userLoading ? 'Loading user data...' : 'Loading your courses...'}
+                </h1>
+            </div>
+        );
+    }
 
     // Show error state
-    if (error) return (
-        <div className="flex flex-col items-center justify-center h-screen p-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full text-center">
-                <h2 className="text-red-800 font-semibold mb-2">Error Loading Content</h2>
-                <p className="text-red-600 mb-4">{error}</p>
-                <button
-                    onClick={() => {
-                        setError(null);
-                        setDataLoaded(false);
-                        loadData();
-                    }}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                >
-                    Try Again
-                </button>
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen p-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full text-center">
+                    <h2 className="text-red-800 font-semibold mb-2">Error Loading Content</h2>
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <button
+                        onClick={handleRetry}
+                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                    >
+                        Try Again
+                    </button>
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     // Show message if no courses available
-    if (!loading && courses.length === 0) {
+    if (!isLoading && courses.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-screen p-4">
                 <div className="text-center">
@@ -496,16 +527,27 @@ const OnlineSchoolPlatform = () => {
                                 <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
                                     <button
                                         onClick={() => setShowAssessment(false)}
-                                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition duration-200"
+                                        disabled={submittingAssessment}
+                                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition duration-200 disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSubmitAssessment}
-                                        disabled={Object.keys(selectedAnswers).length < (currentAssessment?.assessment[0]?.questions.length || 0)}
-                                        className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition duration-200"
+                                        disabled={
+                                            submittingAssessment ||
+                                            Object.keys(selectedAnswers).length < (currentAssessment?.assessment[0]?.questions.length || 0)
+                                        }
+                                        className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition duration-200 flex items-center justify-center"
                                     >
-                                        Submit Assessment
+                                        {submittingAssessment ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                Submitting...
+                                            </>
+                                        ) : (
+                                            'Submit Assessment'
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -550,6 +592,9 @@ const OnlineSchoolPlatform = () => {
                                     <div className="p-4 flex items-center text-green-600">
                                         <CheckCircle className="h-5 w-5 mr-2" />
                                         <span className="font-medium">Video completed!</span>
+                                        {markingVideoWatched && (
+                                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin ml-2"></div>
+                                        )}
                                     </div>
                                 )}
                             </div>
