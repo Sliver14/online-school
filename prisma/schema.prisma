@@ -17,8 +17,11 @@ model User {
   church           String?
   country          String?
   password         String?
-  verificationCode String?
+  verificationToken String? @unique
   verified         Boolean  @default(false)
+  verifiedAt               DateTime?
+  verificationTokenExpiresAt DateTime?
+  lastVerificationSent     DateTime?
   progress    UserProgress[]
   assessments UserAssessment[]
   exams       UserExam[]

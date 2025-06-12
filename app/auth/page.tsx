@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import {User, Mail, Lock, Eye, EyeOff, Star, Users, Pencil, AlertCircle, Loader2} from 'lucide-react';
 import axios, { AxiosError } from "axios";
-import { useRouter } from 'next/navigation';
 import Image from "next/image";
 
 // Define interfaces for better type safety
@@ -25,7 +24,6 @@ export default function WelcomeScreen() {
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const router = useRouter();
     const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
@@ -120,43 +118,13 @@ export default function WelcomeScreen() {
                 firstName: formData.firstName,
                 lastName: formData.lastName,
             });
-
-            router.push("/auth/verify");
+            
+            // setError(response.error)
+            // router.push("/auth/verify");
+            alert("Check you email for verification Link")
 
         } catch (error) {
             console.error('Sign-up error:', error);
-
-            if (error instanceof AxiosError) {
-                const errorData = error.response?.data as ApiErrorResponse;
-                const errorMessage = errorData?.error || errorData?.message || "Sign-up failed. Please try again.";
-
-                if (errorMessage.includes("User not verified")) {
-                    // Store email for verification process
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem("email", formData.email);
-                    }
-                    setError("User not verified. Redirecting to verification...");
-
-                    try {
-                        await axios.post("/api/auth/resendcode", {
-                            email: formData.email,
-                        });
-                    } catch (resendError) {
-                        console.error("Failed to resend verification code:", resendError);
-                        setError("Failed to resend verification code. Please try again.");
-                    }
-
-                    // Redirect to verification page
-                    router.push("/auth/verify");
-                } else {
-                    setError(errorMessage);
-                }
-            } else if (error instanceof Error) {
-                console.log(error.name)
-                setError("An unexpected error occurred during sign-up");
-            } else {
-                setError("An unknown error occurred during sign-up");
-            }
         } finally {
             setIsLoading(false);
         }
@@ -184,9 +152,9 @@ export default function WelcomeScreen() {
         });
     };
 
-    const handleForgotPasswordClick = (): void => {
-        router.push("/auth/forgotpassword");
-    };
+    // const handleForgotPasswordClick = (): void => {
+    //     router.push("/auth/forgotpassword");
+    // };
 
     return (
         <div className="min-h-screen flex items-center bg-cover bg-center bg-no-repeat justify-center p-4 relative overflow-hidden" style={{ backgroundImage: "url('/welcome/bg welcome app.png')"}}>
@@ -370,7 +338,7 @@ export default function WelcomeScreen() {
                                 </label>
                                 <button
                                     type="button"
-                                    onClick={handleForgotPasswordClick}
+                                    // onClick={}
                                     className="text-yellow-300 cursor-pointer hover:text-yellow-200 transition-colors disabled:opacity-50"
                                     disabled={isLoading}
                                 >

@@ -1,44 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
     try {
-        const { email, code } = await req.json();
+        const token = req.nextUrl.searchParams.get("token");
 
-        // Find the user by email using Prisma
-        const user = await prisma.user.findUnique({
-            where: { email },
+        if (!token) {
+            return NextResponse.redirect(
+                `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=error&message=missing_token`
+            );
+        }
+
+        const user = await prisma.user.findFirst({
+            where: { verificationToken: token },
         });
 
         if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 400 });
+            return NextResponse.redirect(
+                `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=error&message=invalid_token`
+            );
         }
 
-        // ✅ Check if user has a verification code before comparing
-        if (!user.verificationCode) {
-            return NextResponse.json({ error: "No verification code found. Please request a new code." }, { status: 400 });
+        console.log(user.firstName)
+        console.log("Token from URL:", token);
+
+        // Check if user is already verified
+        if (user.verified) {
+            return NextResponse.redirect(
+                `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=already_verified&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || '')}`
+            );
         }
 
-        // Compare verification code
-        const isMatch = bcrypt.compareSync(code.toString(), user.verificationCode);
-
-        if (!isMatch) {
-            return NextResponse.json({ error: "Invalid code" }, { status: 400 });
+        // Check if token is expired (24 hours expiry)
+        if (user.verificationTokenExpiresAt) {
+            const now = new Date();
+            const expiresAt = new Date(user.verificationTokenExpiresAt);
+            
+            if (now > expiresAt) {
+                return NextResponse.redirect(
+                    `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=expired&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || '')}`
+                );
+            }
         }
 
-        // Update user record
+        // Update user verification status
         await prisma.user.update({
-            where: { email },
+            where: { id: user.id },
             data: {
-                verificationCode: null, // ✅ Set to null instead of empty string for consistency
                 verified: true,
+                verificationToken: null,
+                verificationTokenExpiresAt: null,
+                verifiedAt: new Date(),
             },
         });
 
-        return NextResponse.json({ message: "Signup was successful!" }, { status: 200 });
+        console.log(`User ${user.email} successfully verified their email at ${new Date().toISOString()}`);
+
+        // Redirect to success page with user info
+        return NextResponse.redirect(
+            `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=success&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || '')}`
+        );
+
     } catch (error) {
-        console.error("Error during code verification:", error);
-        return NextResponse.json({ error: "An error occurred during verification" }, { status: 500 });
+        console.error("Email verification error:", error);
+        
+        // Log more details for debugging
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+        });
+        
+        return NextResponse.redirect(
+            `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=error&message=server_error`
+        );
     }
 }
