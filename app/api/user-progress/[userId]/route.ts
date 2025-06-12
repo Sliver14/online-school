@@ -59,7 +59,7 @@ export async function GET(
                     description: cls.description,
                     duration: "45 min",
                     videoUrl: cls.videos[0]?.videoUrl || "",
-                    posterUrl: cls.videos[0]?.title || "",
+                    posterUrl: cls.videos[0]?.videoPosterUrl || "",
                     assessment: cls.assessments.map(assessment => ({
                         id: assessment.id,
                         title: assessment.title,
