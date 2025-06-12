@@ -5,6 +5,8 @@ import Image from 'next/image';
 import VideoPlayer from "@/app/components/VideoPlayer";
 import axios from "axios";
 import {useUser} from "@/app/context/UserContext";
+import Lottie from 'lottie-react';
+import spinnerAnimation from '../public/loading.json';
 
 interface Course {
     id: number;
@@ -277,12 +279,38 @@ const OnlineSchoolPlatform = () => {
     const isLoading = userLoading || dataLoading;
 
     // Show loading state
+    // Move hooks outside the conditional
+    const [loadingText, setLoadingText] = useState('Getting your classes ready...');
+
+    useEffect(() => {
+        if (isLoading) {
+            const texts = [
+                'Getting your classes ready...',
+                'Loading course materials...',
+                'Preparing your dashboard...',
+                'Almost there...'
+            ];
+            
+            let currentIndex = 0;
+            const interval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % texts.length;
+                setLoadingText(texts[currentIndex]);
+            }, 2000); // Change text every 2 seconds
+            
+            return () => clearInterval(interval);
+        }
+    }, [isLoading]);
+
     if (isLoading) {
         return (
-            <div className="flex flex-col w-screen gap-5 text-xl h-screen justify-center items-center">
-                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <h1>
-                    {userLoading ? 'Loading user data...' : 'Loading your courses...'}
+            <div className="flex flex-col bg-gray-900 justify-center items-center w-screen h-screen gap-6">
+                <Lottie
+                    animationData={spinnerAnimation}
+                    style={{ width: 200, height: 200 }}
+                    loop={true}
+                />
+                <h1 className="text-white text-xl font-medium text-center animate-pulse">
+                    {loadingText}
                 </h1>
             </div>
         );
