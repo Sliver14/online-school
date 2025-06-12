@@ -218,34 +218,17 @@ export default function ForgotPasswordPage() {
         setIsLoading(true);
 
         try {
-            const response = await axios.post("/api/auth/resetresend", {
+            await axios.post("/api/auth/resetresend", {
                 email: email.trim().toLowerCase()
-            }, {
-                timeout: 30000, // 30 second timeout
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            })
 
-            if (response.data?.success) {
                 showPopup('Reset code sent to your email!', 'success');
                 setCurrentStep('verify');
                 setResendTimer(60);
                 setRetryCount(0);
-            } else {
-                throw new Error(response.data?.message || 'Failed to send reset code');
-            }
-        } catch (error) {
-            const { shouldRetry } = handleApiError(error, 'email');
 
-            if (shouldRetry && retryCount < 3) {
-                setRetryCount(prev => prev + 1);
-                showPopup(`Retrying... (${retryCount + 1}/3)`, 'info');
-                setTimeout(() => handleEmailSubmit(e), 2000);
-            } else if (retryCount >= 3) {
-                showPopup('Maximum retry attempts reached. Please try again later.', 'error');
-                setRetryCount(0);
-            }
+        } catch (error) {
+            console.error(error);
         } finally {
             setIsLoading(false);
         }
@@ -337,7 +320,7 @@ export default function ForgotPasswordPage() {
         setErrorState(false);
 
         try {
-            const response = await axios.post("/api/auth/signup/verify", {
+            await axios.post("/api/auth/signup/verify", {
                 email: email.trim().toLowerCase(),
                 code: codeToVerify
             }, {
@@ -347,14 +330,11 @@ export default function ForgotPasswordPage() {
                 }
             });
 
-            if (response.data?.success) {
                 showPopup('Code verified! Please set your new password.', 'success');
                 setVerificationCode(codeToVerify);
                 setCurrentStep('reset');
                 setRetryCount(0);
-            } else {
-                throw new Error(response.data?.message || 'Invalid verification code');
-            }
+
         } catch (error) {
             const { shouldRetry } = handleApiError(error, 'verify');
             setErrorState(true);
@@ -396,18 +376,11 @@ export default function ForgotPasswordPage() {
         setIsResetting(true);
 
         try {
-            const response = await axios.post("/api/auth/newpassword", {
+            await axios.post("/api/auth/newpassword", {
                 email: email.trim().toLowerCase(),
                 code: verificationCode,
                 password: newPassword
-            }, {
-                timeout: 30000,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.data?.success) {
+            })
                 showPopup('Password reset successfully! Redirecting to login...', 'success');
                 setTimeout(() => {
                     try {
@@ -416,9 +389,7 @@ export default function ForgotPasswordPage() {
                         window.location.href = '/auth';
                     }
                 }, 2000);
-            } else {
-                throw new Error(response.data?.message || 'Failed to reset password');
-            }
+
         } catch (error) {
             const { shouldRetry } = handleApiError(error, 'reset');
 
@@ -578,7 +549,7 @@ export default function ForgotPasswordPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading || isRateLimited}
-                                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none mb-6"
+                                className="w-full cursor-pointer bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:shadow-lg hover:-translate-y-1 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none mb-6"
                             >
                                 {isLoading ? 'Sending Code...' : isRateLimited ? 'Please Wait...' : 'Send Reset Code'}
                             </button>
