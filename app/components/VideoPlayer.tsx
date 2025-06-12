@@ -455,6 +455,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 className="w-full h-full object-cover"
                 poster={poster}
                 preload="metadata"
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
             >
                 <source src={videoUrl} type="video/mp4" />
                 Your browser does not support the video tag.
