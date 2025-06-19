@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> } // ✅ Fixed: params is now a Promise
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // ✅ Await the params Promise
@@ -22,6 +22,9 @@ export async function GET(
                     include: {
                         questions: true
                     }
+                },
+                resources: {
+                    orderBy: { order: 'asc' }
                 }
             }
         });
@@ -39,8 +42,16 @@ export async function GET(
             description: classData.description,
             duration: '45 min',
             videoUrl: classData.videos[0]?.videoUrl || '',
-            posterUrl: classData.videos[0]?.title || '',
-            assessment: classData.assessments.map((assessment) => ({
+            posterUrl: classData.videos[0]?.videoPosterUrl || '',
+            videos: classData.videos.map((video) => ({
+                id: video.id,
+                title: video.title,
+                videoUrl: video.videoUrl,
+                classNumber: video.classNumber,
+                videoPosterUrl: video.videoPosterUrl,
+                order: video.order
+            })),
+            assessments: classData.assessments.map((assessment) => ({
                 id: assessment.id,
                 title: assessment.title,
                 questions: assessment.questions.map((q) => ({
@@ -51,6 +62,16 @@ export async function GET(
                         : JSON.parse(q.options as string),
                     correctAnswer: q.correctAnswer
                 }))
+            })),
+            resources: classData.resources.map((resource) => ({
+                id: resource.id,
+                title: resource.title,
+                type: resource.type,
+                content: resource.content,
+                resourceUrl: resource.resourceUrl,
+                order: resource.order,
+                createdAt: resource.createdAt,
+                updatedAt: resource.updatedAt
             }))
         };
 

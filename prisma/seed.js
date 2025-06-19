@@ -1,252 +1,309 @@
-// prisma/seed.ts
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
-
-const prisma = new PrismaClient()
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 async function main() {
-    // Check if we're in production environment
-    if (process.env.NODE_ENV === 'production') {
-        console.log('🚫 Seed script should not run in production environment')
-        return
-    }
-
-    console.log('🌱 Starting database seed...')
-
-    try {
-        // Check if data already exists to prevent duplicate seeding
-        const existingUserCount = await prisma.user.count()
-
-        if (existingUserCount > 0) {
-            console.log('📋 Database already contains users. Skipping seed...')
-            return
-        }
-
-        // Hash password properly
-        const saltRounds = 12
-        const hashedPassword = await bcrypt.hash('123456', saltRounds)
-
-        const user = await prisma.user.create({
-            data: {
-                email: 'silverchristopher12@gmail.com',
-                firstName: 'sylver',
-                lastName: 'oyinaga',
-                password: hashedPassword,
-            },
-        })
-
-        console.log('👤 Created user:', user.email)
-
-        // Create classes with proper order sequencing
-        const classesData = [
+    // Create 8 classes
+    const classes = await prisma.class.createMany({
+        data: [
             {
+                id: 1,
                 title: 'The New Creature',
-                description: 'Understanding the transformation that occurs when one becomes a Christian',
+                description: 'Understanding the transformation and identity of a born-again believer.',
                 order: 1,
-                classNumber: 'Class One',
-                videoTitle: 'The New Creature',
-                assessmentTitle: 'The New Creature Assessment',
-                questions: [
-                    {
-                        text: 'Faith is the ...?',
-                        options: ['Substance of things hoped for', 'Evidence of things not seen', 'Both substance and evidence', 'None of the above'],
-                        correctAnswer: 'Both substance and evidence',
-                    },
-                ]
             },
             {
+                id: 2,
                 title: 'The Holy Spirit',
-                description: 'Learning about the person and work of the Holy Spirit',
+                description: 'Exploring the role and power of the Holy Spirit in the life of a Christian.',
                 order: 2,
-                classNumber: 'Class Two',
-                videoTitle: 'The Holy Spirit',
-                assessmentTitle: 'The Holy Spirit Assessment',
-                questions: [
-                    {
-                        text: 'Love is patient and ...?',
-                        options: ['Kind', 'Rude', 'Proud', 'Angry'],
-                        correctAnswer: 'Kind',
-                    },
-                    {
-                        text: 'Who is the Holy Spirit?',
-                        options: ['A symbol like a dove', 'Anointing oil', 'The third person of the Trinity', 'A human being'],
-                        correctAnswer: 'The third person of the Trinity',
-                    },
-                ]
             },
             {
+                id: 3,
                 title: 'Christian Doctrines',
-                description: 'Fundamental beliefs and teachings of Christianity',
+                description: 'Foundational teachings and beliefs of the Christian faith.',
                 order: 3,
-                classNumber: 'Class Three',
-                videoTitle: 'Christian Doctrines',
-                assessmentTitle: 'Christian Doctrines Assessment',
-                questions: [
-                    {
-                        text: 'What is the foundation of Christian doctrine?',
-                        options: ['Human tradition', 'Church councils', 'The Bible', 'Personal experience'],
-                        correctAnswer: 'The Bible',
-                    },
-                ]
             },
             {
+                id: 4,
                 title: 'Evangelism',
-                description: 'Sharing the Gospel and reaching others for Christ',
+                description: 'Learning effective methods to share the Gospel with others.',
                 order: 4,
-                classNumber: 'Class Four(A)',
-                videoTitle: 'Evangelism',
-                assessmentTitle: 'Evangelism Assessment',
-                questions: [
-                    {
-                        text: 'What is the Great Commission?',
-                        options: ['Go and make disciples', 'Love your neighbor', 'Pray without ceasing', 'Give to the poor'],
-                        correctAnswer: 'Go and make disciples',
-                    },
-                ]
             },
             {
+                id: 5,
                 title: 'Introduction To Cell Ministry',
-                description: 'Understanding small group ministry and discipleship',
+                description: 'An overview of cell group structures and their role in church growth.',
                 order: 5,
-                classNumber: 'Class Four(B)',
-                videoTitle: 'Introduction To Cell Ministry',
-                assessmentTitle: 'Cell Ministry Assessment',
-                questions: [
-                    {
-                        text: 'What is the primary purpose of cell ministry?',
-                        options: ['Social gathering', 'Discipleship and growth', 'Entertainment', 'Fundraising'],
-                        correctAnswer: 'Discipleship and growth',
-                    },
-                ]
             },
             {
+                id: 6,
                 title: 'Christian Character And Prosperity',
-                description: 'Developing godly character and understanding biblical prosperity',
+                description: 'Developing godly character and understanding biblical prosperity.',
                 order: 6,
-                classNumber: 'Class Five',
-                videoTitle: 'Christian Character And Prosperity',
-                assessmentTitle: 'Character and Prosperity Assessment',
-                questions: [
-                    {
-                        text: 'True prosperity includes ...?',
-                        options: ['Only material wealth', 'Spiritual, physical, and material well-being', 'Fame and recognition', 'Power over others'],
-                        correctAnswer: 'Spiritual, physical, and material well-being',
-                    },
-                ]
             },
             {
+                id: 7,
                 title: 'The Local Assembly And Loveworld Inc. (Christ Embassy)',
-                description: 'Understanding the local church structure and organization',
+                description: 'Exploring the importance of the local church and the vision of Loveworld Inc.',
                 order: 7,
-                classNumber: 'Class Six',
-                videoTitle: 'The Local Assembly And Loveworld Inc. (Christ Embassy)',
-                assessmentTitle: 'Local Assembly Assessment',
-                questions: [
-                    {
-                        text: 'What is the purpose of the local assembly?',
-                        options: ['Social club', 'Business organization', 'Worship, fellowship, and service', 'Political movement'],
-                        correctAnswer: 'Worship, fellowship, and service',
-                    },
-                ]
             },
             {
+                id: 8,
                 title: 'Introduction To Mobile Technology For Personal Growth, Evangelism And Church Growth',
-                description: 'Leveraging technology for ministry and spiritual growth',
+                description: 'Using mobile technology for spiritual development and ministry outreach.',
                 order: 8,
-                classNumber: 'Class Seven',
-                videoTitle: 'Mobile Technology for Ministry',
-                assessmentTitle: 'Technology for Ministry Assessment',
-                questions: [
-                    {
-                        text: 'How can technology enhance ministry?',
-                        options: ['Replace personal relationships', 'Extend reach and accessibility', 'Eliminate the need for churches', 'Focus only on entertainment'],
-                        correctAnswer: 'Extend reach and accessibility',
-                    },
-                ]
-            }
-        ]
-
-        // Create classes in transaction for data integrity
-        await prisma.$transaction(async (tx) => {
-            for (const classData of classesData) {
-                const createdClass = await tx.class.create({
-                    data: {
-                        title: classData.title,
-                        description: classData.description,
-                        order: classData.order,
-                        videos: {
-                            create: [
-                                {
-                                    title: classData.videoTitle,
-                                    videoUrl: process.env.DEFAULT_VIDEO_URL || 'https://example.com/placeholder-video',
-                                    videoPosterUrl: process.env.DEFAULT_POSTER_URL || '',
-                                    classNumber: classData.classNumber,
-                                    order: 1
-                                },
-                            ],
-                        },
-                        assessments: {
-                            create: {
-                                title: classData.assessmentTitle,
-                                questions: {
-                                    create: classData.questions,
-                                },
-                            },
-                        },
-                    },
-                    include: { videos: true, assessments: true },
-                })
-
-                console.log(`📚 Created class: ${createdClass.title}`)
-            }
-        })
-
-        // Create final exam
-        const exam = await prisma.exam.create({
-            data: {
-                title: 'Final Comprehensive Exam',
-                questions: {
-                    create: [
-                        {
-                            text: 'Who is described as the author and finisher of our faith?',
-                            options: ['Jesus Christ', 'Moses', 'Paul the Apostle', 'Prophet Elijah'],
-                            correctAnswer: 'Jesus Christ',
-                        },
-                        {
-                            text: 'According to 1 Corinthians 13:13, what are the three greatest virtues?',
-                            options: ['Faith, Hope, Love', 'Love, Joy, Peace', 'Wisdom, Knowledge, Understanding', 'Prayer, Fasting, Giving'],
-                            correctAnswer: 'Faith, Hope, Love',
-                        },
-                        {
-                            text: 'What is the primary purpose of the church?',
-                            options: ['Social welfare', 'Political influence', 'Worship God and make disciples', 'Economic development'],
-                            correctAnswer: 'Worship God and make disciples',
-                        },
-                        {
-                            text: 'What does it mean to be born again?',
-                            options: ['Physical rebirth', 'Spiritual transformation', 'Change of religion', 'Moral improvement'],
-                            correctAnswer: 'Spiritual transformation',
-                        },
-                    ],
-                },
             },
-        })
+        ],
+    });
 
-        console.log(`📝 Created exam: ${exam.title}`)
-        console.log('✅ Database seeded successfully!')
+    // Create 8 videos (1 per class)
+    const videos = await prisma.video.createMany({
+        data: [
+            {
+                id: 1,
+                classId: 1,
+                title: 'Who is the New Creature?',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class One',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749024298/igjvdxvzizghd1vbrfoh.jpg',
+                order: 1,
+            },
+            {
+                id: 2,
+                classId: 2,
+                title: 'The Power of the Holy Spirit',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Two',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+            {
+                id: 3,
+                classId: 3,
+                title: 'Core Christian Beliefs',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Three',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+            {
+                id: 4,
+                classId: 4,
+                title: 'Sharing the Gospel Effectively',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Four(A)',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+            {
+                id: 5,
+                classId: 5,
+                title: 'Building Cell Groups',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Four(B)',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+            {
+                id: 6,
+                classId: 6,
+                title: 'Godly Character and Prosperity',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Five',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+            {
+                id: 7,
+                classId: 7,
+                title: 'The Role of the Local Church',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Six',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+            {
+                id: 8,
+                classId: 8,
+                title: 'Mobile Tech for Ministry',
+                videoUrl: 'https://res.cloudinary.com/dfi8bpolg/video/upload/v1736329275/samples/cld-sample-video.mp4',
+                classNumber: 'Class Seven',
+                videoPosterUrl: 'https://res.cloudinary.com/dfi8bpolg/image/upload/v1749733689/pm4ss9lhtw8nwf3aedct.jpg',
+                order: 1,
+            },
+        ],
+    });
 
-    } catch (error) {
-        console.error('❌ Seed error:', error)
-        throw error
-    }
+    // Create 8 assessments (1 per class)
+    const assessments = await prisma.assessment.createMany({
+        data: [
+            { id: 1, classId: 1, title: 'New Creature Quiz' },
+            { id: 2, classId: 2, title: 'Holy Spirit Assessment' },
+            { id: 3, classId: 3, title: 'Christian Doctrines Quiz' },
+            { id: 4, classId: 4, title: 'Evangelism Assessment' },
+            { id: 5, classId: 5, title: 'Cell Ministry Quiz' },
+            { id: 6, classId: 6, title: 'Christian Character Quiz' },
+            { id: 7, classId: 7, title: 'Local Assembly Assessment' },
+            { id: 8, classId: 8, title: 'Mobile Technology Quiz' },
+        ],
+    });
+
+    // Create questions (10 for Class 2's assessment, 1 for each other assessment)
+    const questions = await prisma.question.createMany({
+        data: [
+            // Question for Class 1
+            {
+                id: 1,
+                assessmentId: 1,
+                text: 'What does it mean to be a "new creature" in Christ?',
+                options: ['A new spiritual identity', 'A physical transformation', 'Joining a new church', 'Learning new skills'],
+                correctAnswer: 'A new spiritual identity',
+            },
+            // Questions for Class 2 (Holy Spirit)
+            {
+                id: 2,
+                assessmentId: 2,
+                text: 'The Pentecost is not a Christian feast but rather refers to a _______ celebration.',
+                options: ['Greek', 'Jewish', 'English', 'German'],
+                correctAnswer: 'Greek',
+            },
+            {
+                id: 3,
+                assessmentId: 2,
+                text: '___________ baptizes you into the body of Christ.',
+                options: ['The Holy Spirit', 'God', 'Our Lord Jesus', 'Your Pastor'],
+                correctAnswer: 'The Holy Spirit',
+            },
+            {
+                id: 4,
+                assessmentId: 2,
+                text: 'Being baptized into the Holy Spirit and receiving the Holy Spirit are the same experience?',
+                options: ['True', 'False', 'Not really', 'None of the above'],
+                correctAnswer: 'True',
+            },
+            {
+                id: 5,
+                assessmentId: 2,
+                text: 'You can’t receive a double anointing because',
+                options: [
+                    'It will be too much for you to function in as a New Creature',
+                    'The one who gives the anointing is in you in His fullness',
+                    'It is just for ordained ministers',
+                    'You are not a celestial being',
+                ],
+                correctAnswer: 'It will be too much for you to function in as a New Creature',
+            },
+            {
+                id: 6,
+                assessmentId: 2,
+                text: 'The Holy Spirit Proceeds _____________ the father',
+                options: ['With', 'To', 'From', 'Away'],
+                correctAnswer: 'With',
+            },
+            {
+                id: 7,
+                assessmentId: 2,
+                text: 'How does God live in you?',
+                options: ['By His Grace', 'By His mercy', 'By His Spirit', 'By His love'],
+                correctAnswer: 'By His Grace',
+            },
+            {
+                id: 8,
+                assessmentId: 2,
+                text: 'One of the ways to receive the Holy Spirit is',
+                options: [
+                    'By studying the Word voraciously and meditating on it without fail',
+                    'By fasting consistently',
+                    'By praying without ceasing',
+                    'By simply and with reverence saying a prayer to receive Him, and by faith receiving Him',
+                ],
+                correctAnswer: 'By studying the Word voraciously and meditating on it without fail',
+            },
+            {
+                id: 9,
+                assessmentId: 2,
+                text: 'Speaking in tongues is all but one of the following',
+                options: [
+                    'One of the ways that we edify ourselves',
+                    'The self-improvement plan of the Holy Spirit',
+                    'A human language not understood by the Speaker',
+                    'A way to glorify God',
+                ],
+                correctAnswer: 'One of the ways that we edify ourselves',
+            },
+            {
+                id: 10,
+                assessmentId: 2,
+                text: 'The Seven Spirits of God include all but',
+                options: ['Spirit of Peace', 'Spirit of Might', 'Spirit of Counsel', 'Spirit of Knowledge'],
+                correctAnswer: 'Spirit of Peace',
+            },
+            {
+                id: 11,
+                assessmentId: 2,
+                text: 'One of these is a gift of the Spirit as listed in 1 Cor. 12: 8 - 10',
+                options: ['Greater Anointing', 'New levels of Grace', 'Diverse kinds of tongues', 'Peace of mind'],
+                correctAnswer: 'Greater Anointing',
+            },
+            // Question for Class 3
+            {
+                id: 12,
+                assessmentId: 3,
+                text: 'Which doctrine teaches that Jesus is both God and man?',
+                options: ['Trinity', 'Hypostatic Union', 'Salvation', 'Baptism'],
+                correctAnswer: 'Hypostatic Union',
+            },
+            // Question for Class 4
+            {
+                id: 13,
+                assessmentId: 4,
+                text: 'What is the primary goal of evangelism?',
+                options: ['Selling books', 'Sharing the Gospel', 'Building churches', 'Hosting events'],
+                correctAnswer: 'Sharing the Gospel',
+            },
+            // Question for Class 5
+            {
+                id: 14,
+                assessmentId: 5,
+                text: 'What is the main purpose of a cell group in church ministry?',
+                options: ['Fundraising', 'Fellowship and discipleship', 'Organizing concerts', 'Building facilities'],
+                correctAnswer: 'Fellowship and discipleship',
+            },
+            // Question for Class 6
+            {
+                id: 15,
+                assessmentId: 6,
+                text: 'What is a key aspect of Christian character according to the Bible?',
+                options: ['Wealth accumulation', 'Humility', 'Fame', 'Power'],
+                correctAnswer: 'Humility',
+            },
+            // Question for Class 7
+            {
+                id: 16,
+                assessmentId: 7,
+                text: 'What is Loveworld Inc. primarily focused on?',
+                options: ['Real estate', 'Global ministry and evangelism', 'Manufacturing', 'Education'],
+                correctAnswer: 'Global ministry and evangelism',
+            },
+            // Question for Class 8
+            {
+                id: 17,
+                assessmentId: 8,
+                text: 'How can mobile technology aid evangelism?',
+                options: ['Cooking meals', 'Spreading the Gospel via apps', 'Building houses', 'Driving outreach'],
+                correctAnswer: 'Spreading the Gospel via apps',
+            },
+        ],
+    });
+
+    console.log('Seeding completed successfully!');
 }
 
 main()
     .catch((e) => {
-        console.error('❌ Seed failed:', e)
-        process.exit(1)
+        console.error(e);
+        process.exit(1);
     })
     .finally(async () => {
-        await prisma.$disconnect()
-        console.log('📡 Database connection closed')
-    })
+        await prisma.$disconnect();
+    });

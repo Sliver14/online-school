@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        // Find user by verification token
         const user = await prisma.user.findFirst({
             where: { verificationToken: token },
         });
@@ -21,26 +22,23 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        console.log(user.firstName)
-        console.log("Token from URL:", token);
+        // Log for debugging
+        console.log(`Verification attempt for user: ${user.email}, token: ${token}`);
 
         // Check if user is already verified
         if (user.verified) {
+            console.log(`User ${user.email} is already verified`);
             return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=already_verified&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || '')}`
+                `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=already_verified&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || "")}`
             );
         }
 
-        // Check if token is expired (24 hours expiry)
-        if (user.verificationTokenExpiresAt) {
-            const now = new Date();
-            const expiresAt = new Date(user.verificationTokenExpiresAt);
-            
-            if (now > expiresAt) {
-                return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=expired&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || '')}`
-                );
-            }
+        // Check if token is expired
+        if (!user.verificationTokenExpiresAt || new Date() > new Date(user.verificationTokenExpiresAt)) {
+            console.log(`Verification token expired for user: ${user.email}`);
+            return NextResponse.redirect(
+                `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=expired&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || "")}`
+            );
         }
 
         // Update user verification status
@@ -54,23 +52,19 @@ export async function GET(req: NextRequest) {
             },
         });
 
-        console.log(`User ${user.email} successfully verified their email at ${new Date().toISOString()}`);
+        console.log(`User ${user.email} successfully verified at ${new Date().toISOString()}`);
 
-        // Redirect to success page with user info
+        // Redirect to success page
         return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=success&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || '')}`
+            `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=success&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.firstName || "")}`
         );
-
     } catch (error) {
-        console.error("Email verification error:", error);
-        
-        // Log more details for debugging
-        console.error("Error details:", {
+        console.error("Email verification error:", {
             message: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         });
-        
+
         return NextResponse.redirect(
             `${process.env.NEXT_PUBLIC_APP_URL}/auth/verified-success?status=error&message=server_error`
         );

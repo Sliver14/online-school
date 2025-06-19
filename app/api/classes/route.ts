@@ -32,7 +32,7 @@ export async function GET() {
                 title: cls.title,
                 description: cls.description,
                 classNumber: firstVideo?.classNumber || "", // ✅ classNumber from Video
-                duration: `45 mins`,           //
+                duration: ``,           //
                 videoUrl: firstVideo?.videoUrl || "",
                 posterUrl: firstVideo?.videoPosterUrl || "", // ✅ using videoPosterUrl from Video
                 assessment: cls.assessments.map(assessment => ({

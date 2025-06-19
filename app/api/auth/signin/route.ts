@@ -2,34 +2,51 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
+import { sendVerificationEmail } from "@/utils/email";
 
 export async function POST(req: NextRequest) {
     try {
         const { email, password } = await req.json();
 
         // Basic validation
-        if (!email) {
-            return NextResponse.json({ error: "Email is required." }, { status: 400 });
+        if (!email || !password) {
+            return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
         }
 
-        if (!password) {
-            return NextResponse.json({ error: "Password is required." }, { status: 400 });
-        }
-
-        // Find the user by email using Prisma
+        // Find the user by email
         const user = await prisma.user.findUnique({
             where: { email },
         });
 
         if (!user) {
-            return NextResponse.json({ error: "User not found." }, { status: 400 });
+            return NextResponse.json({ error: "Invalid email or password" }, { status: 400 });
         }
 
         if (!user.verified) {
-            return NextResponse.json({ error: "User not verified" }, { status: 400 });
+            // Generate and update verification token
+            const verificationToken = uuidv4();
+            const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+            await prisma.user.update({
+                where: { email },
+                data: {
+                    verificationToken,
+                    verificationTokenExpiresAt: expires,
+                },
+            });
+
+            // Send verification email
+            const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/signup/verify?token=${verificationToken}`;
+            await sendVerificationEmail(user.email, user.firstName, verificationLink, "resend");
+
+            return NextResponse.json(
+                { error: "User not verified. A verification link has been sent to your email." },
+                { status: 400 }
+            );
         }
 
-        // ✅ Check if user has a password before comparing
+        // Check if user has a password
         if (!user.password) {
             return NextResponse.json({ error: "Account setup incomplete." }, { status: 400 });
         }
@@ -37,7 +54,7 @@ export async function POST(req: NextRequest) {
         // Compare passwords
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return NextResponse.json({ error: "Wrong password combination" }, { status: 400 });
+            return NextResponse.json({ error: "Invalid email or password" }, { status: 400 });
         }
 
         // Generate JWT token
@@ -56,9 +73,8 @@ export async function POST(req: NextRequest) {
         );
 
         return response;
-
     } catch (error) {
-        console.error(error);
+        console.error("Signin Error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

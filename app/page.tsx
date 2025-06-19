@@ -1,738 +1,225 @@
-"use client"
-import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, Lock, BookOpen, Award, BarChart3, User, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
-import VideoPlayer from "@/app/components/VideoPlayer";
-import axios from "axios";
-import {useUser} from "@/app/context/UserContext";
-import Lottie from 'lottie-react';
-import spinnerAnimation from '../public/loading.json';
+'use client';
 
-interface Course {
-    id: number;
-    title: string;
-    description: string;
-    duration: string;
-    videoUrl: string;
-    posterUrl: string;
-    classNumber: string;
-    assessment: Assessment[];
-}
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X } from 'lucide-react';
+import SideBar from './components/SideBar';
+import Classes from './components/Classes';
+import ClassView from './components/ClassView';
+import { AppProvider, useAppContext } from './context/AppContext';
+import { colors } from '@/lib/constants';
+import { useUser } from './context/UserContext';
 
-interface Assessment {
-    id: number;
-    title: string;
-    questions: Question[];
-}
+// Helper function to capitalize first letter
+const capitalize = (str: string | undefined) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
 
-interface Question {
-    id: number;
-    question: string;
-    options: string[];
-    correctAnswer: string;
-}
+const OnlineSchool = () => {
+    const {
+        activeTab,
+        setActiveTab,
+        sidebarOpen,
+        setSidebarOpen,
+        handleNavClick,
+        classes,
+        selectedClassId,
+        videoWatched,
+        assessmentCompleted,
+    } = useAppContext();
+    const [loading, setLoading] = useState(true);
+    const renderCount = useRef(0);
+    const { userDetails } = useUser();
 
-interface UserProgressData {
-    classId: number;
-    course: Course;
-    hasWatchedVideo: boolean;
-    assessmentScores: number[];
-    completed: boolean;
-}
-
-const OnlineSchoolPlatform = () => {
-    const [courses, setCourses] = useState<Course[]>([]);
-    const [userProgress, setUserProgress] = useState<UserProgressData[]>([]);
-    const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
-    const [assessmentScores, setAssessmentScores] = useState<Record<number, number>>({});
-    const [currentAssessment, setCurrentAssessment] = useState<Course | null>(null);
-    const [showAssessment, setShowAssessment] = useState(false);
-    const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [showExamination, setShowExamination] = useState<boolean>(false);
-
-    // Fixed loading states
-    const [dataLoading, setDataLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [dataLoaded, setDataLoaded] = useState(false);
-
-    // Individual action loading states
-    const [submittingAssessment, setSubmittingAssessment] = useState(false);
-    const [markingVideoWatched, setMarkingVideoWatched] = useState(false);
-
-    const { userId, loading: userLoading } = useUser();
-
-    // Improved loadData function
-    const loadData = useCallback(async () => {
-        // Wait for user data to load first
-        if (userLoading || !userId || dataLoaded) return;
-
-        try {
-            setDataLoading(true);
-            setError(null);
-
-            console.log('Loading data for userId:', userId);
-
-            // Parallel loading for better performance
-            const [classesResponse, progressResponse] = await Promise.all([
-                axios.get("/api/classes"),
-                axios.get(`/api/user-progress/${userId}`)
-            ]);
-
-            const classesData = classesResponse.data.data;
-            const progressData = progressResponse.data;
-
-            if (!classesData || classesData.length === 0) {
-                throw new Error('No classes data received');
-            }
-
-            setCourses(classesData);
-            setUserProgress(progressData);
-            console.log('Classes loaded:', classesData);
-            console.log('Progress loaded:', progressData);
-
-            // Set current course (first incomplete or first course)
-            const firstIncomplete = progressData.find((p: UserProgressData) => !p.completed);
-            const courseToSet = firstIncomplete ? firstIncomplete.course : classesData[0];
-            setCurrentCourse(courseToSet);
-            console.log('Current course set:', courseToSet);
-
-            // Initialize assessment scores
-            const scores: Record<number, number> = {};
-            progressData.forEach((progress: UserProgressData) => {
-                if (progress.assessmentScores.length > 0) {
-                    scores[progress.classId] = Math.max(...progress.assessmentScores);
-                }
-            });
-            setAssessmentScores(scores);
-
-            setDataLoaded(true);
-        } catch (err) {
-            console.error('Error loading data:', err);
-            setError(`Failed to load data: ${err instanceof Error ? err.message : 'Unknown error'}`);
-            // Don't set dataLoaded to true on error to allow retry
-        } finally {
-            setDataLoading(false);
-        }
-    }, [userId, userLoading, dataLoaded]);
-
-    // Improved useEffect with proper dependencies
+    // Debug re-renders
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        renderCount.current += 1;
+        console.log(`OnlineSchool rendered ${renderCount.current} times`);
+    });
 
-    // Reset data when userId changes
+    // Set loading to false once classes are fetched
     useEffect(() => {
-        if (userId) {
-            setDataLoaded(false);
-            setError(null);
+        if (classes.length >= 0) {
+            console.log('Classes loaded, setting loading to false');
+            setLoading(false);
         }
-    }, [userId]);
+    }, [classes]);
 
-    // Enhanced retry function
-    const handleRetry = useCallback(() => {
-        setError(null);
-        setDataLoaded(false);
-        // loadData will be called automatically via useEffect when dataLoaded changes
-    }, []);
+    // Calculate dynamic stats
+    const totalClasses = classes.length;
+    const completedClasses = classes.reduce((count, classItem) => {
+        const classId = classItem.id.toString();
+        const isVideoWatched = videoWatched[classId];
+        const allAssessmentsCompleted = classItem.assessment.length > 0
+            ? classItem.assessment.every((assessment: any) => assessmentCompleted[assessment.id.toString()])
+            : true;
+        return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
+    }, 0);
+    const overallProgress = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
 
-    const isClassUnlocked = (classId: number) => {
-        if (classId === 1) return true;
-        const previousClass = userProgress.find(p => p.classId === classId - 1);
-        return previousClass ? previousClass.completed : false;
+    // Compute initials
+    const initials = userDetails?.firstName || userDetails?.lastName
+        ? `${userDetails?.firstName?.charAt(0)?.toUpperCase() || ''}${userDetails?.lastName?.charAt(0)?.toUpperCase() || ''}`
+        : 'U';
+
+    // Capitalize names
+    const displayFirstName = capitalize(userDetails?.firstName) || 'User';
+    const displayLastName = capitalize(userDetails?.lastName);
+
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
     };
 
-    const isVideoWatched = (classId: number) => {
-        const progress = userProgress.find(p => p.classId === classId);
-        return progress ? progress.hasWatchedVideo : false;
+    const renderClasses = () => (
+        <>
+            <div className="space-y-6 mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
+                    <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
+                    Overview
+                </h2>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {[
+                        { value: totalClasses.toString(), label: 'Total Classes', color: colors.secondary },
+                        { value: `${overallProgress}%`, label: 'Overall Progress', color: colors.success },
+                    ].map((stat, index) => (
+                        <div key={index} className="p-6 rounded-xl border border-slate-700 backdrop-blur-sm" style={{ backgroundColor: colors.tertiary }}>
+                            <div className="text-3xl font-bold mb-2" style={{ color: stat.color }}>{stat.value}</div>
+                            <div className="text-sm" style={{ color: colors.textMuted }}>{stat.label}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <Classes />
+        </>
+    );
+
+    const renderExaminations = () => (
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
+                <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
+                Examinations
+            </h2>
+
+            <div className="space-y-4">
+                {[
+                    { title: 'Final Exam', date: '', status: '', statusColor: colors.warning },
+                ].map((exam, index) => (
+                    <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 rounded-xl border border-slate-700 backdrop-blur-sm" style={{ backgroundColor: colors.tertiary }}>
+                        <div className="mb-4 sm:mb-0">
+                            <h3 className="font-semibold" style={{ color: colors.text }}>{exam.title}</h3>
+                            <p className="text-sm" style={{ color: colors.textMuted }}>{exam.date}</p>
+                        </div>
+                        <span className="px-4 py-2 rounded-lg text-white text-sm font-medium self-start sm:self-center" style={{ backgroundColor: exam.statusColor }}>
+              {exam.status}
+            </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    // Helper function to check if activeTab is a class ID
+    const isClassTab = (tab: string) => {
+        if (!classes || !Array.isArray(classes)) {
+            return false;
+        }
+        return classes.some(c => c.id.toString() === tab);
     };
 
-    const isClassCompleted = (classId: number) => {
-        const progress = userProgress.find(p => p.classId === classId);
-        return progress ? progress.completed : false;
-    };
-
-    // Enhanced handleVideoComplete with loading state
-    const handleVideoComplete = async (classId: number) => {
-        try {
-            setMarkingVideoWatched(true);
-            await axios.post(`/api/user-progress/video-watched`, {
-                userId,
-                classId
-            });
-
-            // Update local state
-            setUserProgress(prev =>
-                prev.map(p =>
-                    p.classId === classId
-                        ? { ...p, hasWatchedVideo: true }
-                        : p
-                )
+    const renderContent = () => {
+        if (loading) {
+            return (
+                <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: colors.accent }}></div>
+                    <p style={{ color: colors.textMuted }}>Loading...</p>
+                </div>
             );
-        } catch (error) {
-            console.error('Failed to mark video watched', error);
-            setError('Could not update video watch status');
-        } finally {
-            setMarkingVideoWatched(false);
+        }
+
+        if (selectedClassId) {
+            return <ClassView classId={selectedClassId} onBack={() => setActiveTab('classes')} />;
+        }
+
+        switch (activeTab) {
+            case 'classes':
+                return renderClasses();
+            case 'examinations':
+                return renderExaminations();
+            default:
+                if (isClassTab(activeTab)) {
+                    return (
+                        <ClassView
+                            classId={activeTab}
+                            onBack={() => setActiveTab('classes')}
+                        />
+                    );
+                }
+                return renderClasses();
         }
     };
-
-    const handleStartAssessment = (classId: number) => {
-        const course = courses.find(c => c.id === classId);
-        if (!course) return;
-
-        setCurrentAssessment(course);
-        setShowAssessment(true);
-        setSelectedAnswers({});
-    };
-
-    const handleAnswerSelect = (questionId: number, answerIndex: number) => {
-        setSelectedAnswers(prevAnswers => ({
-            ...prevAnswers,
-            [questionId]: answerIndex
-        }));
-    };
-
-    // Enhanced handleSubmitAssessment with loading state
-    const handleSubmitAssessment = async () => {
-        if (!currentAssessment) return;
-
-        try {
-            setSubmittingAssessment(true);
-            const response = await axios.post('/api/user-progress/submit-assessment', {
-                userId,
-                classId: currentAssessment.id,
-                answers: selectedAnswers
-            });
-
-            const score = response.data.score;
-
-            setAssessmentScores(prevScores => ({
-                ...prevScores,
-                [currentAssessment.id]: score
-            }));
-
-            // Update user progress
-            if (score >= 80) {
-                setUserProgress(prev =>
-                    prev.map(p =>
-                        p.classId === currentAssessment.id
-                            ? { ...p, completed: p.hasWatchedVideo && score >= 80 }
-                            : p
-                    )
-                );
-            }
-
-            setShowAssessment(false);
-            setCurrentAssessment(null);
-            setSelectedAnswers({});
-        } catch (error) {
-            setError('Failed to submit assessment');
-            console.error(error);
-        } finally {
-            setSubmittingAssessment(false);
-        }
-    };
-
-    // Navigation functions
-    const handlePreviousClass = () => {
-        if (!currentCourse || currentCourse.id <= 1) return;
-
-        const previousCourse = courses.find(course => course.id === currentCourse.id - 1);
-        if (previousCourse && isClassUnlocked(previousCourse.id)) {
-            setCurrentCourse(previousCourse);
-        }
-    };
-
-    const handleNextClass = () => {
-        if (!currentCourse || currentCourse.id >= courses.length) return;
-
-        const nextCourse = courses.find(course => course.id === currentCourse.id + 1);
-        if (nextCourse && isClassUnlocked(nextCourse.id)) {
-            setCurrentCourse(nextCourse);
-        }
-    };
-
-    const canNavigateToPrevious = () => {
-        return currentCourse && currentCourse.id > 1 && isClassUnlocked(currentCourse.id - 1);
-    };
-
-    const canNavigateToNext = () => {
-        return currentCourse && currentCourse.id < courses.length && isClassUnlocked(currentCourse.id + 1);
-    };
-
-    const getProgressPercentage = () => {
-        if (courses.length === 0) return 0;
-        const completedCount = userProgress.filter(p => p.completed).length;
-        return Math.round((completedCount / courses.length) * 100);
-    };
-
-    const getCurrentCourse = () => {
-        return currentCourse || (courses.length > 0 ? courses[0] : null);
-    };
-
-    const currentView = showExamination ? 'examination' :
-        showAssessment ? 'assessment' :
-            'course';
-
-    // Combined loading state check
-    const isLoading = userLoading || dataLoading;
-
-    // Show loading state
-    // Move hooks outside the conditional
-    const [loadingText, setLoadingText] = useState('Getting your classes ready...');
-
-    useEffect(() => {
-        if (isLoading) {
-            const texts = [
-                'Getting your classes ready...',
-                'Loading course materials...',
-                'Preparing your dashboard...',
-                'Almost there...'
-            ];
-            
-            let currentIndex = 0;
-            const interval = setInterval(() => {
-                currentIndex = (currentIndex + 1) % texts.length;
-                setLoadingText(texts[currentIndex]);
-            }, 2000); // Change text every 2 seconds
-            
-            return () => clearInterval(interval);
-        }
-    }, [isLoading]);
-
-    if (isLoading) {
-        return (
-            <div className="flex flex-col bg-gray-900 justify-center items-center w-screen h-screen gap-6">
-                <Lottie
-                    animationData={spinnerAnimation}
-                    style={{ width: 200, height: 200 }}
-                    loop={true}
-                />
-                <h1 className="text-white text-xl font-medium text-center animate-pulse">
-                    {loadingText}
-                </h1>
-            </div>
-        );
-    }
-
-    // Show error state
-    if (error) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen p-4">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full text-center">
-                    <h2 className="text-red-800 font-semibold mb-2">Error Loading Content</h2>
-                    <p className="text-red-600 mb-4">{error}</p>
-                    <button
-                        onClick={handleRetry}
-                        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    // Show message if no courses available
-    if (!isLoading && courses.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen p-4">
-                <div className="text-center">
-                    <h2 className="text-2xl font-semibold text-gray-700 mb-2">No Courses Available</h2>
-                    <p className="text-gray-500">Please contact your administrator.</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Get current course safely
-    const currentCourseData = getCurrentCourse();
-    if (!currentCourseData) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen p-4">
-                <div className="text-center">
-                    <h2 className="text-2xl font-semibold text-gray-700 mb-2">No Course Selected</h2>
-                    <p className="text-gray-500">Please select a course from the sidebar.</p>
-                </div>
-            </div>
-        );
-    }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-            <header className="bg-white shadow-lg sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center">
+        <div className="min-h-screen" style={{ backgroundColor: colors.primary }}>
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+                    onClick={toggleSidebar}
+                />
+            )}
+
+            {/* Sidebar */}
+            <SideBar
+                handleNavClick={handleNavClick}
+                sidebarOpen={sidebarOpen}
+                colors={colors}
+                activeTab={activeTab}
+            />
+
+            {/* Main content */}
+            <div className="lg:pl-72">
+                {/* Header */}
+                <header className="p-4 lg:p-6 border-b border-slate-700" style={{ backgroundColor: colors.tertiary }}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
                             <button
-                                onClick={() => setSidebarOpen(!sidebarOpen)}
-                                className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                onClick={toggleSidebar}
+                                className="lg:hidden p-2 rounded-lg text-white transition-colors hover:opacity-80"
+                                style={{ backgroundColor: colors.accent }}
                             >
-                                {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                             </button>
-                            <div className="flex items-center ml-2 md:ml-0">
-                                <Image
-                                    src="/logo.png"
-                                    alt="logo.png"
-                                    width={45}
-                                    height={45}
-                                    onError={(e) => {
-                                        console.log('Logo failed to load');
-                                        e.currentTarget.style.display = 'none';
-                                    }}
-                                />
-                                <h1 className="hidden md:ml-2 md:block text-lg font-bold text-gray-900">
-                                    Loveworld Foundation School
-                                </h1>
+                            <div>
+                                <h2 className="text-xl font-semibold" style={{ color: colors.text }}>
+                                    Welcome Back, {displayFirstName}!
+                                </h2>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                            <div className="hidden sm:flex items-center space-x-2">
-                                <BarChart3 className="h-5 w-5 text-gray-600" />
-                                <span className="text-sm font-medium text-gray-700">
-                                    Progress: {getProgressPercentage()}%
-                                </span>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: colors.accent }}>
+                                {initials}
                             </div>
-                            <div className="h-8 w-8 bg-indigo-600 rounded-full flex items-center justify-center">
-                                <User className="h-5 w-5 text-white" />
-                            </div>
+                            <span className="hidden sm:inline" style={{ color: colors.text }}>
+                {displayFirstName} {displayLastName}
+              </span>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <div className="flex">
-                {/* Sidebar */}
-                <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transition-transform duration-300 ease-in-out`}>
-                    {/* Progress */}
-                    <div className="p-6 border-b">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Course Progress</h2>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                                style={{width: `${getProgressPercentage()}%`}}
-                            />
-                        </div>
-                        <p className="text-sm text-gray-600 mt-2">
-                            {userProgress.filter(p => p.completed).length} of {courses.length} classes completed
-                        </p>
-                    </div>
-
-                    {/* Classes */}
-                    <div className="p-4">
-                        <h3 className="text-sm font-medium text-gray-900 mb-3">CLASSES</h3>
-                        <div className="space-y-2">
-                            {courses.map((course) => (
-                                <button
-                                    key={course.id}
-                                    onClick={() => {
-                                        if (isClassUnlocked(course.id)) {
-                                            setCurrentCourse(course);
-                                            setSidebarOpen(false);
-                                        }
-                                    }}
-                                    disabled={!isClassUnlocked(course.id)}
-                                    className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
-                                        currentCourse?.id === course.id
-                                            ? 'bg-indigo-600 text-white border-2 border-indigo-600 shadow-md'
-                                            : isClassUnlocked(course.id)
-                                                ? 'hover:bg-gray-50 border-2 border-transparent text-gray-900'
-                                                : 'opacity-50 cursor-not-allowed border-2 border-transparent text-gray-500'
-                                    }`}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <span className="text-sm font-medium">
-                                                {course.classNumber}
-                                            </span>
-                                            {isClassCompleted(course.id) && (
-                                                <CheckCircle className={`h-4 w-4 ml-2 ${
-                                                    currentCourse?.id === course.id ? 'text-white' : 'text-green-500'
-                                                }`} />
-                                            )}
-                                            {!isClassUnlocked(course.id) && (
-                                                <Lock className="h-4 w-4 text-gray-400 ml-2" />
-                                            )}
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/*EXAMINATION*/}
-                    <div className="p-4">
-                        <h3 className="text-sm font-medium text-gray-900 mb-3">EXAMINATION</h3>
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => setShowExamination(true)}
-                                disabled={userProgress.filter(p => p.completed).length < courses.length}
-                                className={`w-full text-left p-3 rounded-lg border-2 transition-all duration-200 ${
-                                    userProgress.filter(p => p.completed).length === courses.length
-                                        ? 'border-transparent hover:bg-gradient-to-r hover:from-blue-50 hover:to-orange-50 hover:border-blue-200'
-                                        : 'border-transparent opacity-50 cursor-not-allowed'
-                                }`}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <span className="text-sm font-medium text-gray-900">
-                                            Final Exam
-                                        </span>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-600 mt-1">Second Quarter</p>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Overlay for mobile sidebar */}
-                {sidebarOpen && (
-                    <div
-                        className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-                        onClick={() => setSidebarOpen(false)}
-                    />
-                )}
-
-                {/* Main Content */}
-                <div className="flex-1 p-4 md:p-8">
-                    {currentView === 'examination' ? (
-                        <div>
-                            <h1>START EXAM NOW</h1>
-                        </div>
-                    ) : currentView === 'assessment' ? (
-                        <div className="max-w-3xl mx-auto">
-                            <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
-                                <div className="text-center mb-8">
-                                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                                        Class {currentAssessment?.id} Assessment
-                                    </h2>
-                                    <p className="text-gray-600">Answer all questions to complete the assessment</p>
-                                </div>
-
-                                <div className="space-y-8">
-                                    {currentAssessment?.assessment[0]?.questions.map((question, index) => (
-                                        <div key={question.id} className="border-b border-gray-200 pb-6 last:border-0">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                                {index + 1}. {question.question}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {question.options.map((option, optionIndex) => (
-                                                    <label
-                                                        key={optionIndex}
-                                                        className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                                                            selectedAnswers[question.id] === optionIndex
-                                                                ? 'border-indigo-500 bg-indigo-50'
-                                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        <input
-                                                            type="radio"
-                                                            name={`question-${question.id}`}
-                                                            value={optionIndex}
-                                                            checked={selectedAnswers[question.id] === optionIndex}
-                                                            onChange={() => handleAnswerSelect(question.id, optionIndex)}
-                                                            className="sr-only"
-                                                        />
-                                                        <div className={`w-4 h-4 rounded-full mr-3 border-2 ${
-                                                            selectedAnswers[question.id] === optionIndex
-                                                                ? 'border-indigo-500 bg-indigo-500'
-                                                                : 'border-gray-300'
-                                                        }`}>
-                                                            {selectedAnswers[question.id] === optionIndex && (
-                                                                <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5" />
-                                                            )}
-                                                        </div>
-                                                        <span className="text-gray-700">{option}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
-                                    <button
-                                        onClick={() => setShowAssessment(false)}
-                                        disabled={submittingAssessment}
-                                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition duration-200 disabled:opacity-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleSubmitAssessment}
-                                        disabled={
-                                            submittingAssessment ||
-                                            Object.keys(selectedAnswers).length < (currentAssessment?.assessment[0]?.questions.length || 0)
-                                        }
-                                        className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition duration-200 flex items-center justify-center"
-                                    >
-                                        {submittingAssessment ? (
-                                            <>
-                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                                Submitting...
-                                            </>
-                                        ) : (
-                                            'Submit Assessment'
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="max-w-4xl mx-auto">
-                            {/* Course Header with Navigation */}
-                            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                                                Class {currentCourseData.id}: {currentCourseData.title}
-                                            </h2>
-                                            {isClassCompleted(currentCourseData.id) && (
-                                                <div className="flex items-center space-x-2 text-green-600">
-                                                    <Award className="h-6 w-6" />
-                                                    <span className="font-semibold">Completed!</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                            <span>Duration: {currentCourseData.duration}</span>
-                                            <span>•</span>
-                                            <span>Class {currentCourseData.id} of {courses.length}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Video Section */}
-                            <div className="bg-white rounded-xl shadow-lg mb-8">
-                                <VideoPlayer
-                                    key={`${currentCourseData.id}-${currentCourseData.videoUrl}-${currentCourseData.posterUrl}`}
-                                    className="w-full h-full mb-6 md:mb-6"
-                                    videoUrl={currentCourseData.videoUrl || ""}
-                                    poster={currentCourseData.posterUrl || ""}
-                                    title={`${currentCourseData.title} - Video Lesson`}
-                                    onVideoEnd={() => handleVideoComplete(currentCourseData.id)}
-                                />
-                                {isVideoWatched(currentCourseData.id) && (
-                                    <div className="p-4 flex items-center text-green-600">
-                                        <CheckCircle className="h-5 w-5 mr-2" />
-                                        <span className="font-medium">Video completed!</span>
-                                        {markingVideoWatched && (
-                                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin ml-2"></div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Assessment Section */}
-                            <div className="bg-white rounded-xl shadow-lg p-6">
-                                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                                    <BookOpen className="h-5 w-5 mr-2 text-indigo-600" />
-                                    Assessment
-                                </h3>
-
-                                {!isVideoWatched(currentCourseData.id) ? (
-                                    <div className="text-center py-8">
-                                        <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                        <p className="text-gray-600">Complete the video lesson to unlock the assessment</p>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        {assessmentScores[currentCourseData.id] ? (
-                                            <div className="text-center py-8">
-                                                <div className={`inline-flex items-center px-6 py-3 rounded-full text-lg font-semibold ${
-                                                    assessmentScores[currentCourseData.id] >= 80
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {assessmentScores[currentCourseData.id] >= 80 ? (
-                                                        <CheckCircle className="h-6 w-6 mr-2" />
-                                                    ) : (
-                                                        <X className="h-6 w-6 mr-2" />
-                                                    )}
-                                                    Score: {assessmentScores[currentCourseData.id]}%
-                                                </div>
-                                                <p className="text-gray-600 mt-4">
-                                                    {assessmentScores[currentCourseData.id] >= 80
-                                                        ? 'Congratulations! You passed the assessment.'
-                                                        : 'You need 80% to pass. Please retake the assessment.'}
-                                                </p>
-                                                <button
-                                                    onClick={() => handleStartAssessment(currentCourseData.id)}
-                                                    className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200"
-                                                >
-                                                    {assessmentScores[currentCourseData.id] >= 80 ? 'Retake Assessment' : 'Try Again'}
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="text-center py-8">
-                                                <p className="text-gray-600 mb-6">Ready to test your knowledge?</p>
-                                                <button
-                                                    onClick={() => handleStartAssessment(currentCourseData.id)}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200 transform hover:scale-105"
-                                                >
-                                                    Start Assessment
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Navigation Buttons */}
-                            <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                                <button
-                                    onClick={handlePreviousClass}
-                                    disabled={!canNavigateToPrevious()}
-                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                        canNavigateToPrevious()
-                                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                                    }`}
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                    <span>Previous Class</span>
-                                </button>
-
-                                <div className="hidden xl:flex space-x-2">
-                                    {courses.map((course) => (
-                                        <div
-                                            key={course.id}
-                                            className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                                                currentCourse?.id === course.id
-                                                    ? 'bg-indigo-600 scale-125'
-                                                    : isClassCompleted(course.id)
-                                                        ? 'bg-green-500'
-                                                        : isClassUnlocked(course.id)
-                                                            ? 'bg-gray-300'
-                                                            : 'bg-gray-200'
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-
-                                <button
-                                    onClick={handleNextClass}
-                                    disabled={!canNavigateToNext()}
-                                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition duration-200 ${
-                                        canNavigateToNext()
-                                            ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                                    }`}
-                                >
-                                    <span>Next Class</span>
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                {/* Content */}
+                <main className="p-4 lg:p-8">
+                    {renderContent()}
+                </main>
             </div>
         </div>
     );
 };
 
-export default OnlineSchoolPlatform;
+const OnlineSchoolWithProvider = () => (
+    <AppProvider>
+        <OnlineSchool />
+    </AppProvider>
+);
+
+export default OnlineSchoolWithProvider;

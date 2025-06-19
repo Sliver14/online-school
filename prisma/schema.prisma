@@ -8,61 +8,88 @@ datasource db {
 }
 
 model User {
-  id          Int              @id @default(autoincrement())
-  email       String           @unique
-  firstName        String?
-  lastName         String?
-  phoneNumber      String?
-  zone             String?
-  church           String?
-  country          String?
-  password         String?
-  verificationToken String? @unique
-  verified         Boolean  @default(false)
-  verifiedAt               DateTime?
+  id                    Int                    @id @default(autoincrement())
+  email                 String                 @unique
+  firstName             String?
+  lastName              String?
+  phoneNumber           String?
+  zone                  String?
+  church                String?
+  country               String?
+  city                  String?
+  kcUsername            String?
+  password              String?
+  verificationToken     String?                @unique
+  verified              Boolean                @default(false)
+  approved              Boolean                @default(false)
+  approvedBy            Int?
+  approvedAt            DateTime?
+  verifiedAt            DateTime?
   verificationTokenExpiresAt DateTime?
-  lastVerificationSent     DateTime?
-  progress    UserProgress[]
-  assessments UserAssessment[]
-  exams       UserExam[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  lastVerificationSent  DateTime?
+  resetToken String? // Added for password reset
+  resetTokenExpiresAt DateTime? // Added for password reset expiry
+
+  progress              UserProgress[]
+  assessments           UserAssessment[]
+  exams                 UserExam[]
+  essaySubmissions      ClassEssaySubmission[]
+  classTimers           ClassTimers[]          @relation // Added relation to ClassTimers
+
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 }
 
 model Class {
-  id          Int          @id @default(autoincrement())
-  title       String
-  description String?
-  videos      Video[]
-  assessments Assessment[]
-  order       Int
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id               Int                    @id @default(autoincrement())
+  title            String
+  description      String?
+  videos           Video[]
+  assessments      Assessment[]
+  resources        ClassResource[]
+  essaySubmissions ClassEssaySubmission[]
+  classTimers      ClassTimers[]          @relation // Added relation to ClassTimers
+  order            Int
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+}
+
+model ClassTimers {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  classId       Int
+  timerExpiresAt DateTime?
+  timerActive   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class         Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  @@unique([userId, classId])
 }
 
 model Video {
-  id        Int            @id @default(autoincrement())
-  class     Class          @relation(fields: [classId], references: [id])
-  classId   Int
-  title     String
-  videoUrl  String
-  classNumber String
+  id             Int             @id @default(autoincrement())
+  class          Class           @relation(fields: [classId], references: [id])
+  classId        Int
+  title          String
+  videoUrl       String
+  classNumber    String
   videoPosterUrl String
-  order     Int
-  progress  UserProgress[] // 👈 back-relation to UserProgress
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  order          Int
+  progress       UserProgress[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model Assessment {
-  id          Int              @id @default(autoincrement())
-  class       Class            @relation(fields: [classId], references: [id])
-  classId     Int
-  title       String
-  questions   Question[]
-  submissions UserAssessment[] // 👈 back-relation to UserAssessment
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id            Int              @id @default(autoincrement())
+  class         Class            @relation(fields: [classId], references: [id])
+  classId       Int
+  title         String
+  questions     Question[]
+  submissions   UserAssessment[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 model Question {
@@ -75,29 +102,41 @@ model Question {
 }
 
 model UserProgress {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  video     Video    @relation(fields: [videoId], references: [id])
-  videoId   Int
-  watchedAt DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  user           User     @relation(fields: [userId], references: [id])
+  userId         Int
+  video          Video    @relation(fields: [videoId], references: [id])
+  videoId        Int
+  watchedAt      DateTime @default(now())
+  timerExpiresAt DateTime?
+  timerActive    Boolean  @default(true)
 }
 
 model UserAssessment {
-  id           Int        @id @default(autoincrement())
-  user         User       @relation(fields: [userId], references: [id])
-  userId       Int
-  assessment   Assessment @relation(fields: [assessmentId], references: [id])
-  assessmentId Int
-  score        Float
-  completedAt  DateTime   @default(now())
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  assessmentId    Int
+  score           Int
+  isPassed        Boolean  @default(false)
+  answers         Json?
+  detailedResults Json?
+  attemptCount    Int      @default(1)
+  completedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, assessmentId])
+  @@map("user_assessments")
 }
 
 model Exam {
   id        Int            @id @default(autoincrement())
   title     String
   questions ExamQuestion[]
-  results   UserExam[] // 👈 back-relation to UserExam
+  results   UserExam[]
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 }
@@ -119,4 +158,38 @@ model UserExam {
   examId  Int
   score   Float
   takenAt DateTime @default(now())
+}
+
+model ClassResource {
+  id          Int          @id @default(autoincrement())
+  class       Class        @relation(fields: [classId], references: [id])
+  classId     Int
+  title       String
+  type        ResourceType
+  content     String
+  resourceUrl String?
+  order       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model ClassEssaySubmission {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  class       Class    @relation(fields: [classId], references: [id])
+  classId     Int
+  content     String
+  submittedAt DateTime @default(now())
+  reviewed    Boolean  @default(false)
+  remarks     String?
+}
+
+enum ResourceType {
+  READ
+  ESSAY
+  VIDEO
+  LINK
+  ASSIGNMENT
+  NOTE
 }

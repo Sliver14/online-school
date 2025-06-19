@@ -12,7 +12,7 @@ const Welcome = () => {
 
   const handleGetStarted = () => {
     // setClickedButton('getStarted');
-      router.push('/auth');
+      router.push('/auth?mode=signup');
     setTimeout(() => setClickedButton(null), 300);
   };
 
@@ -26,7 +26,7 @@ const Welcome = () => {
 
   // On your welcome page button click:
   const handleLogin = () => {
-    router.push('/auth');
+    router.push('/auth?mode=signin');
   };
 
   return (
@@ -82,17 +82,17 @@ const Welcome = () => {
               height={150}
               // layout="fill"
               // objectFit="cover"
-              className="flex w-[150px] h-auto lg:w-[200px] "
+              className="flex w-[150px] h-auto lg:w-[300px] "
           />
           <div className='felx items-center justify-center text-center gap-5'>
-            <h1 className='text-yellow-400 text-2xl '>
+            {/* <h1 className='text-yellow-400 text-2xl '>
               Loveworld
             </h1>
             <h1 className='text-white uppercase text-3xl font-bold'>
               Foundation School
-            </h1>
-            <h1 className='text-white text-3xl font-bold'>
-              Online Class
+            </h1> */}
+            <h1 className='text-white text-3xl'>
+              Online Class and Exams
             </h1>
           </div>
 
