@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, Play, Pause, Volume2, VolumeX, Maximize, Lock } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, Play, Pause, Volume2, VolumeX, Maximize, Lock, FileText, Upload, Link2, Video } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { colors } from '@/lib/constants';
 import axios from 'axios';
 import { useUser } from '../context/UserContext';
 import AssessmentModal from './AssessmentModal';
@@ -36,7 +37,7 @@ interface AssessmentData {
 interface ResourceData {
   id: number;
   title: string;
-  type: string;
+  type: 'READ' | 'ESSAY' | 'VIDEO' | 'LINK' | 'ASSIGNMENT' | 'NOTE';
   content?: string;
   resourceUrl?: string;
   order: number;
@@ -89,6 +90,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     message: string;
   } | null>(null);
   const [assessmentAttempts, setAssessmentAttempts] = useState<{ [assessmentId: string]: boolean }>({});
+  const [essayFile, setEssayFile] = useState<File | null>(null);
 
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
@@ -208,7 +210,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                   const response = await axios.post('/api/user-progress/submit-assessment', {
                     userId: parseInt(userId),
                     classId: parseInt(selectedClassId),
-                    answers: {}, // Empty answers for 0% score
+                    answers: {},
                     score: 0,
                     isPassed: false,
                   });
@@ -437,20 +439,44 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   const handleResourceAccess = async (resource: ResourceData) => {
     try {
-      await axios.post('/api/user/resource-access', {
+      await axios.post('/api/user-progress/resource-access', {
         userId: parseInt(userId),
         classId: parseInt(selectedClassId),
         resourceId: resource.id,
         accessedAt: new Date(),
       });
-      if (resource.resourceUrl) {
-        window.open(resource.resourceUrl, '_blank');
-      } else if (resource.content) {
-        console.log('Display inline content:', resource.content);
-      }
       showNotification('info', `Accessing ${resource.title}`);
+      if (resource.resourceUrl && ['VIDEO', 'LINK'].includes(resource.type)) {
+        window.open(resource.resourceUrl, '_blank');
+      }
     } catch (error) {
       handleError('Failed to access resource', error);
+    }
+  };
+
+  const handleEssayUpload = async (resource: ResourceData) => {
+    if (!essayFile) {
+      showNotification('error', 'Please select a file to upload.');
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append('file', essayFile);
+      formData.append('userId', userId);
+      formData.append('classId', selectedClassId);
+      formData.append('content', essayFile.name);
+
+      const response = await axios.post('/api/user-progress/submit-essay', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        showNotification('success', 'Essay submitted successfully!');
+        setEssayFile(null);
+      } else {
+        throw new Error(response.data.error || 'Failed to submit essay');
+      }
+    } catch (error) {
+      handleError('Failed to upload essay', error);
     }
   };
 
@@ -463,356 +489,407 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   if (error) {
     return (
-        <div className="text-center py-12">
-          <p style={{ color: colors.textMuted }}>{error}</p>
-          <button
-              onClick={() => setSelectedClassId(null)}
-              className="mt-4 px-4 py-2 rounded-lg"
-              style={{ backgroundColor: colors.secondary, color: 'white' }}
-          >
-            Back to Classes
-          </button>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{error}</p>
+        <button
+          onClick={() => {
+            onBack();
+            sessionStorage.removeItem('selectedClassId');
+          }}
+          className="mt-4 px-6 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
+        >
+          Back to Classes
+        </button>
+      </div>
     );
   }
 
   if (loading) {
     return (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: colors.accent }}></div>
-          <p style={{ color: colors.textMuted }}>Loading class content...</p>
-        </div>
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-400 dark:border-primary-400 mx-auto mb-4"></div>
+        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Loading class content...</p>
+      </div>
     );
   }
 
   if (!classData) {
     return (
-        <div className="text-center py-12">
-          <p style={{ color: colors.textMuted }}>Class not found</p>
-          <button
-              onClick={() => setSelectedClassId(null)}
-              className="mt-4 px-4 py-2 rounded-lg"
-              style={{ backgroundColor: colors.secondary, color: 'white' }}
-          >
-            Back to Classes
-          </button>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Class not found</p>
+        <button
+          onClick={() => {
+            onBack();
+            sessionStorage.removeItem('selectedClassId');
+          }}
+          className="mt-4 px-6 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
+        >
+          Back to Classes
+        </button>
+      </div>
     );
   }
 
   const isAssessmentLocked = !videoWatched[selectedClassId];
 
   return (
-      <div className="space-y-6">
-        {notification && (
-            <div
-                className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
-                    notification.type === 'success' ? 'bg-green-600' : notification.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
-                } text-white`}
-            >
-              <div className="flex items-center gap-2">
-                <span>{notification.message}</span>
-                <button onClick={() => setNotification(null)} className="ml-2 text-white hover:text-gray-200">
-                  ×
-                </button>
-              </div>
-            </div>
-        )}
-
-        <button
-            onClick={() => setSelectedClassId(null)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors hover:opacity-80"
-            style={{ backgroundColor: colors.secondary }}
+    <div className="space-y-6">
+      {notification && (
+        <div
+          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+            notification.type === 'success'
+              ? 'bg-success-500 dark:bg-success-600'
+              : notification.type === 'error'
+              ? 'bg-error-500 dark:bg-error-600'
+              : 'bg-info-500 dark:bg-info-600'
+          } text-white`}
         >
-          <ChevronLeft className="w-4 h-4" />
-          Back to Classes
-        </button>
-
-        <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
-          <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
-          {classData.title}
-        </h2>
-
-        <div className="grid grid-cols-1 gap-6">
-          <div className="lg:col-span-3">
-            <div className="rounded-xl border border-slate-700 overflow-hidden backdrop-blur-sm" style={{ backgroundColor: colors.tertiary }}>
-              <div className="relative">
-                {selectedVideo ? (
-                    <>
-                      <video
-                          ref={videoRef}
-                          className="w-full h-64 md:h-96 bg-black object-contain"
-                          src={selectedVideo.videoUrl}
-                          poster={selectedVideo.videoPosterUrl}
-                          onTimeUpdate={handleTimeUpdate}
-                          onLoadedMetadata={handleLoadedMetadata}
-                          onEnded={handleVideoEnd}
-                          onPlay={() => setIsPlaying(true)}
-                          onPause={() => setIsPlaying(false)}
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                        <div className="flex items-center gap-4 text-white">
-                          <button
-                              onClick={togglePlayPause}
-                              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                          >
-                            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                          </button>
-                          <button
-                              onClick={toggleMute}
-                              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                          >
-                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                          </button>
-                          <div className="flex-1 flex items-center gap-2">
-                            <span className="text-sm">{formatTime(currentTime)}</span>
-                            <div
-                                className="flex-1 h-2 bg-white/30 rounded-full cursor-pointer"
-                                onClick={(e) => {
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  const percent = (e.clientX - rect.left) / rect.width;
-                                  seekTo(percent * duration);
-                                }}
-                            >
-                              <div
-                                  className="h-full rounded-full transition-all"
-                                  style={{ width: `${(currentTime / duration) * 100}%`, backgroundColor: colors.accent }}
-                              />
-                            </div>
-                            <span className="text-sm">{formatTime(duration)}</span>
-                          </div>
-                          <button
-                              onClick={toggleFullscreen}
-                              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                          >
-                            <Maximize className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                ) : (
-                    <div className="h-96 bg-black flex items-center justify-center">
-                      <div className="text-center" style={{ color: colors.textMuted }}>
-                        <div
-                            className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl mb-4 mx-auto"
-                            style={{ backgroundColor: colors.accent }}
-                        >
-                          <Play className="w-8 h-8 ml-1" />
-                        </div>
-                        <p className="text-lg">No video available</p>
-                      </div>
-                    </div>
-                )}
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-4" style={{ color: colors.text }}>
-                  {selectedVideo?.title || classData.title}
-                </h3>
-                <p style={{ color: colors.textMuted }}>{classData.description}</p>
-                {videoWatched[selectedClassId] && (
-                    <div className="mt-3 flex items-center gap-2 text-green-400">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-sm">Video completed</span>
-                    </div>
-                )}
-              </div>
-            </div>
+          <div className="flex items-center justify-between">
+            <span className="desktop_paragraph tablet_paragraph mobile_paragraph">{notification.message}</span>
+            <button onClick={() => setNotification(null)} className="ml-2 hover:text-neutral-200">
+              ×
+            </button>
           </div>
+        </div>
+      )}
 
-          {classData.videos && classData.videos.length > 1 && (
-              <div className="lg:col-span-1">
-                <div className="rounded-xl border border-slate-700 p-4 backdrop-blur-sm" style={{ backgroundColor: colors.tertiary }}>
-                  <h4 className="font-semibold mb-4" style={{ color: colors.text }}>Video Playlist</h4>
-                  <div className="space-y-2">
-                    {classData.videos.map((video, index) => (
-                        <button
-                            key={video.id}
-                            onClick={() => handleVideoSelect(video)}
-                            className={`w-full text-left p-3 rounded-lg transition-colors ${
-                                selectedVideo?.id === video.id ? 'border-2' : 'border border-slate-600'
-                            }`}
-                            style={{
-                              backgroundColor: selectedVideo?.id === video.id ? colors.primary : 'transparent',
-                              borderColor: selectedVideo?.id === video.id ? colors.accent : 'rgb(71 85 105)',
-                            }}
+      <button
+        onClick={() => {
+          onBack();
+          sessionStorage.removeItem('selectedClassId');
+        }}
+        className="flex items-center gap-2 px-4 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back to Classes
+      </button>
+
+      <h2 className="desktop_h2 tablet_h2 mobile_h2 flex items-center gap-2 text-neutral-950 dark:text-dark-text-primary">
+        <div className="w-1 h-8 rounded bg-primary-400 dark:bg-primary-400"></div>
+        {classData.title}
+      </h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary overflow-hidden backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
+            <div className="relative">
+              {selectedVideo ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    className="w-full h-64 md:h-96 bg-black object-contain"
+                    src={selectedVideo.videoUrl}
+                    poster={selectedVideo.videoPosterUrl}
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onEnded={handleVideoEnd}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    controlsList="nodownload"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <div className="flex items-center gap-4 text-white">
+                      <button
+                        onClick={togglePlayPause}
+                        className="p-2 hover:bg-neutral-200/20 rounded-full transition-colors"
+                      >
+                        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                      </button>
+                      <button
+                        onClick={toggleMute}
+                        className="p-2 hover:bg-neutral-200/20 rounded-full transition-colors"
+                      >
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      </button>
+                      <div className="flex-1 flex items-center gap-2">
+                        <span className="text-sm desktop_paragraph tablet_paragraph mobile_paragraph">{formatTime(currentTime)}</span>
+                        <div
+                          className="flex-1 h-2 bg-neutral-200/30 rounded-full cursor-pointer"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const percent = (e.clientX - rect.left) / rect.width;
+                            seekTo(percent * duration);
+                          }}
                         >
-                          <div className="flex items-center gap-3">
-                            <div
-                                className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold"
-                                style={{ backgroundColor: colors.accent }}
-                            >
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate" style={{ color: colors.text }}>
-                                {video.title}
-                              </p>
-                              <p className="text-xs" style={{ color: colors.textMuted }}>
-                                Class {video.classNumber}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                    ))}
+                          <div
+                            className="h-full bg-primary-400 dark:bg-primary-400 rounded-full transition-all"
+                            style={{ width: `${(currentTime / duration) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-sm desktop_paragraph tablet_paragraph mobile_paragraph">{formatTime(duration)}</span>
+                      </div>
+                      <button
+                        onClick={toggleFullscreen}
+                        className="p-2 hover:bg-neutral-200/20 rounded-full transition-colors"
+                      >
+                        <Maximize className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="h-96 bg-black flex items-center justify-center">
+                  <div className="text-center text-neutral-500 dark:text-dark-text-muted">
+                    <div
+                      className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl mb-4 mx-auto bg-primary-400 dark:bg-primary-400"
+                    >
+                      <Play className="w-8 h-8 ml-1" />
+                    </div>
+                    <p className="text-lg desktop_paragraph tablet_paragraph mobile_paragraph">No video available</p>
                   </div>
                 </div>
-              </div>
-          )}
-        </div>
-
-        <div className="rounded-xl border border-slate-700 p-6 backdrop-blur-sm" style={{ backgroundColor: colors.tertiary }}>
-          <div className="flex space-x-6 mb-6 border-b border-slate-600">
-            {[
-              { id: 'materials', label: 'Course Materials' },
-              { id: 'assessments', label: 'Assessments' },
-            ].map((tab) => (
-                <button
-                    key={tab.id}
-                    onClick={() => setActiveResourceTab(tab.id)}
-                    className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                        activeResourceTab === tab.id ? 'text-cyan-400 border-cyan-400' : 'hover:text-white border-transparent'
-                    }`}
-                    style={{ color: activeResourceTab === tab.id ? colors.accent : colors.textMuted }}
-                >
-                  {tab.label}
-                </button>
-            ))}
+              )}
+            </div>
+            <div className="p-6">
+              <h3 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-4 text-neutral-950 dark:text-dark-text-primary">
+                {selectedVideo?.title || classData.title}
+              </h3>
+              <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{classData.description}</p>
+              {videoWatched[selectedClassId] && (
+                <div className="mt-3 flex items-center gap-2 text-success-500 dark:text-success-400">
+                  <div className="w-2 h-2 bg-success-500 dark:bg-success-400 rounded-full"></div>
+                  <span className="text-sm desktop_paragraph tablet_paragraph mobile_paragraph">Video completed</span>
+                </div>
+              )}
+            </div>
           </div>
-
-          {activeResourceTab === 'materials' && (
-              <div className="space-y-4">
-                {classData.resources && classData.resources.length > 0 ? (
-                    classData.resources.map((resource) => (
-                        <div
-                            key={resource.id}
-                            className="flex items-center justify-between p-4 rounded-lg border border-slate-600"
-                            style={{ backgroundColor: colors.primary }}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                                style={{ backgroundColor: colors.accent }}
-                            >
-                              {resource.type === 'pdf' ? '📄' : resource.type === 'audio' ? '🎵' : resource.type === 'video' ? '🎥' : '📚'}
-                            </div>
-                            <div>
-                              <h4 className="font-medium" style={{ color: colors.text }}>{resource.title}</h4>
-                              <p className="text-sm" style={{ color: colors.textMuted }}>
-                                {resource.type.charAt(0).toUpperCase() + resource.type.slice(1)} Resource
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                              onClick={() => handleResourceAccess(resource)}
-                              className="px-4 py-2 text-white rounded-lg transition-colors hover:opacity-80"
-                              style={{ backgroundColor: colors.success }}
-                          >
-                            {resource.type === 'pdf' ? 'Download' : resource.type === 'audio' ? 'Listen' : 'View'}
-                          </button>
-                        </div>
-                    ))
-                ) : (
-                    <p style={{ color: colors.textMuted }}>No materials available for this class.</p>
-                )}
-              </div>
-          )}
-
-          {activeResourceTab === 'assessments' && (
-              <div className="space-y-4">
-                {progressLoading ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-2" style={{ borderColor: colors.accent }}></div>
-                      <p style={{ color: colors.textMuted }}>Loading assessments...</p>
-                    </div>
-                ) : classData.assessments && classData.assessments.length > 0 ? (
-                    classData.assessments.map((assessment) => (
-                        <div
-                            key={assessment.id}
-                            className="p-4 rounded-lg border border-slate-600"
-                            style={{ backgroundColor: colors.primary }}
-                        >
-                          <div className="flex justify-between items-center mb-3">
-                            <h4 className="font-medium" style={{ color: colors.text }}>{assessment.title}</h4>
-                            <span
-                                className="px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1"
-                                style={{
-                                  backgroundColor: isAssessmentLocked
-                                      ? colors.error
-                                      : assessmentCompleted[assessment.id.toString()]
-                                          ? colors.success
-                                          : colors.warning,
-                                }}
-                            >
-                      {isAssessmentLocked ? (
-                          <>
-                            <Lock className="w-3 h-3" />
-                            Locked
-                          </>
-                      ) : assessmentCompleted[assessment.id.toString()] ? (
-                          'Completed (100%)'
-                      ) : (
-                          'Available'
-                      )}
-                    </span>
-                          </div>
-                          <p className="text-sm mb-3" style={{ color: colors.textMuted }}>
-                            {assessment.questions.length} questions • Must score 100% to complete
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                                className="px-4 py-2 text-white rounded-lg transition-colors hover:opacity-80"
-                                style={{
-                                  backgroundColor: assessmentCompleted[assessment.id.toString()] ? colors.accent : colors.success,
-                                  opacity: isAssessmentLocked && !assessmentCompleted[assessment.id.toString()] ? 0.5 : 1,
-                                  cursor:
-                                      isAssessmentLocked && !assessmentCompleted[assessment.id.toString()]
-                                          ? 'not-allowed'
-                                          : 'pointer',
-                                }}
-                                onClick={() => handleAssessmentButtonClick(assessment)}
-                                disabled={isLoadingResults || (isAssessmentLocked && !assessmentCompleted[assessment.id.toString()])}
-                            >
-                              {isLoadingResults
-                                  ? 'Loading...'
-                                  : assessmentCompleted[assessment.id.toString()]
-                                      ? 'View Results'
-                                      : 'Take Assessment'}
-                            </button>
-                            {assessmentAttempts[assessment.id.toString()] &&
-                                !assessmentCompleted[assessment.id.toString()] &&
-                                !isAssessmentLocked && (
-                                    <button
-                                        className="px-4 py-2 text-white rounded-lg transition-colors hover:opacity-80"
-                                        style={{ backgroundColor: colors.secondary }}
-                                        onClick={() => handleAssessmentStart(assessment)}
-                                    >
-                                      Retake Assessment
-                                    </button>
-                                )}
-                          </div>
-                        </div>
-                    ))
-                ) : (
-                    <p style={{ color: colors.textMuted }}>No assessments available for this class.</p>
-                )}
-              </div>
-          )}
         </div>
 
-        {selectedAssessment && (
-            <AssessmentModal
-                isOpen={isAssessmentModalOpen}
-                onClose={() => {
-                  setIsAssessmentModalOpen(false);
-                  setSelectedAssessment(null);
-                }}
-                assessment={selectedAssessment}
-                onComplete={handleAssessmentCompleteLocal}
-                assessmentResults={assessmentResults}
-                onRetake={handleRetakeAssessment}
-            />
+        {classData.videos && classData.videos.length > 1 && (
+          <div className="lg:col-span-1">
+            <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary p-4 backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
+              <h4 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-4 text-neutral-950 dark:text-dark-text-primary">Video Playlist</h4>
+              <div className="space-y-2">
+                {classData.videos.map((video, index) => (
+                  <button
+                    key={video.id}
+                    onClick={() => handleVideoSelect(video)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors border ${
+                      selectedVideo?.id === video.id ? 'border-primary-400 dark:border-primary-400 bg-primary-50 dark:bg-primary-900' : 'border-neutral-200 dark:border-dark-border-secondary'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold bg-primary-400 dark:bg-primary-400"
+                      >
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph truncate">
+                          {video.title}
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+                          Class {video.classNumber}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary p-6 backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
+        <div className="flex space-x-6 mb-6 border-b border-neutral-200 dark:border-dark-border-secondary">
+          {[
+            { id: 'materials', label: 'Course Materials' },
+            { id: 'assessments', label: 'Assessments' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveResourceTab(tab.id)}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph ${
+                activeResourceTab === tab.id ? 'text-primary-400 dark:text-primary-400 border-primary-400 dark:border-primary-400' : 'text-neutral-500 dark:text-dark-text-muted hover:text-neutral-950 dark:hover:text-dark-text-primary border-transparent'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeResourceTab === 'materials' && (
+          <div className="space-y-4">
+            {classData.resources && classData.resources.length > 0 ? (
+              classData.resources.map((resource) => (
+                <div
+                  key={resource.id}
+                  className="p-4 rounded-lg border border-neutral-200 dark:border-dark-border-secondary bg-neutral-100 dark:bg-dark-bg-secondary"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold bg-primary-400 dark:bg-primary-400"
+                      >
+                        {resource.type === 'NOTE' ? <FileText className="w-6 h-6" /> :
+                         resource.type === 'ASSIGNMENT' ? <FileText className="w-6 h-6" /> :
+                         resource.type === 'VIDEO' ? <Video className="w-6 h-6" /> :
+                         resource.type === 'LINK' ? <Link2 className="w-6 h-6" /> :
+                         resource.type === 'ESSAY' ? <Upload className="w-6 h-6" /> :
+                         resource.type === 'READ' ? <FileText className="w-6 h-6" /> : '📚'}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">{resource.title}</h4>
+                        <p className="text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+                          {resource.type.charAt(0).toUpperCase() + resource.type.slice(1).toLowerCase()} Resource
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {resource.type === 'NOTE' && resource.content && (
+                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
+                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
+                    </div>
+                  )}
+
+                  {resource.type === 'ASSIGNMENT' && resource.content && (
+                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
+                      <p className="font-semibold text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">Assignment Instructions:</p>
+                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
+                    </div>
+                  )}
+
+                  {resource.type === 'READ' && (
+                    <div className="mt-2">
+                      {resource.content && (
+                        <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
+                      )}
+                      {resource.resourceUrl && (
+                        <button
+                          onClick={() => handleResourceAccess(resource)}
+                          className="mt-2 px-4 py-2 bg-success-500 dark:bg-success-600 text-white rounded-lg hover:bg-success-600 dark:hover:bg-success-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
+                        >
+                          Read Now
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {(resource.type === 'VIDEO' || resource.type === 'LINK') && resource.resourceUrl && (
+                    <button
+                      onClick={() => handleResourceAccess(resource)}
+                      className="px-4 py-2 bg-success-500 dark:bg-success-600 text-white rounded-lg hover:bg-success-600 dark:hover:bg-success-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
+                    >
+                      {resource.type === 'VIDEO' ? 'Watch Video' : 'Visit Link'}
+                    </button>
+                  )}
+
+                  {resource.type === 'ESSAY' && (
+                    <div className="mt-2 flex items-center gap-4">
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => setEssayFile(e.target.files ? e.target.files[0] : null)}
+                        className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph"
+                      />
+                      <button
+                        onClick={() => handleEssayUpload(resource)}
+                        disabled={!essayFile}
+                        className={`px-4 py-2 text-white rounded-lg transition-colors desktop_paragraph tablet_paragraph mobile_paragraph ${
+                          essayFile ? 'bg-primary-400 dark:bg-primary-400 hover:bg-primary-500' : 'bg-neutral-400 dark:bg-neutral-500 cursor-not-allowed'
+                        }`}
+                      >
+                        Upload Essay
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">No materials available for this class.</p>
+            )}
+          </div>
+        )}
+
+        {activeResourceTab === 'assessments' && (
+          <div className="space-y-4">
+            {progressLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-400 dark:border-primary-400 mx-auto mb-2"></div>
+                <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Loading assessments...</p>
+              </div>
+            ) : classData.assessments && classData.assessments.length > 0 ? (
+              classData.assessments.map((assessment) => (
+                <div
+                  key={assessment.id}
+                  className="p-4 rounded-lg border border-neutral-200 dark:border-dark-border-secondary bg-neutral-100 dark:bg-dark-bg-secondary"
+                >
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_h3 tablet_h3 mobile_h3">{assessment.title}</h4>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1 desktop_paragraph tablet_paragraph mobile_paragraph ${
+                        isAssessmentLocked
+                          ? 'bg-error-500 dark:bg-error-600'
+                          : assessmentCompleted[assessment.id.toString()]
+                          ? 'bg-success-500 dark:bg-success-600'
+                          : 'bg-warning-500 dark:bg-warning-600'
+                      }`}
+                    >
+                      {isAssessmentLocked ? (
+                        <>
+                          <Lock className="w-3 h-3" />
+                          Locked
+                        </>
+                      ) : assessmentCompleted[assessment.id.toString()] ? (
+                        'Completed (100%)'
+                      ) : (
+                        'Available'
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-sm mb-3 text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+                    {assessment.questions.length} questions • Must score 100% to complete
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      className={`px-4 py-2 text-white rounded-lg transition-colors hover:opacity-80 desktop_paragraph tablet_paragraph mobile_paragraph ${
+                        assessmentCompleted[assessment.id.toString()] ? 'bg-primary-400 dark:bg-primary-400' : 'bg-success-500 dark:bg-success-600'
+                      } ${isAssessmentLocked && !assessmentCompleted[assessment.id.toString()] ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => handleAssessmentButtonClick(assessment)}
+                      disabled={isLoadingResults || (isAssessmentLocked && !assessmentCompleted[assessment.id.toString()])}
+                    >
+                      {isLoadingResults
+                        ? 'Loading...'
+                        : assessmentCompleted[assessment.id.toString()]
+                        ? 'View Results'
+                        : 'Take Assessment'}
+                    </button>
+                    {assessmentAttempts[assessment.id.toString()] &&
+                      !assessmentCompleted[assessment.id.toString()] &&
+                      !isAssessmentLocked && (
+                        <button
+                          className="px-4 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
+                          onClick={() => handleAssessmentStart(assessment)}
+                        >
+                          Retake Assessment
+                        </button>
+                      )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">No assessments available for this class.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selectedAssessment && (
+        <AssessmentModal
+          isOpen={isAssessmentModalOpen}
+          onClose={() => {
+            setIsAssessmentModalOpen(false);
+            setSelectedAssessment(null);
+          }}
+          assessment={selectedAssessment}
+          onComplete={handleAssessmentCompleteLocal}
+          assessmentResults={assessmentResults}
+          onRetake={handleRetakeAssessment}
+        />
+      )}
+    </div>
   );
 };
 

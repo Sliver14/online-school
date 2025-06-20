@@ -1,46 +1,21 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { UserProvider } from "./context/UserContext";
-import { AppProvider } from "./context/AppContext"
-import {ThemeProvider} from "@/app/ThemeProvider";
+import './globals.css';
+import { Inter } from 'next/font/google';
+import { ThemeProvider } from './ThemeProvider';
+import { AppProvider } from './context/AppContext';
+import { UserProvider } from './context/UserContext';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Loveworld Foundation School Online",
-  description: "An online replica of the onsite foundation school",
-    icons: {
-        icon: "/favicon.png", // Make sure this file exists in the `public/` folder
-    },
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <AppProvider>
           <UserProvider>
-            <AppProvider>
-                <ThemeProvider>
-                    {children}
-                </ThemeProvider>
-            </AppProvider>
+              <ThemeProvider>{children}</ThemeProvider>
           </UserProvider>
-
+        </AppProvider>
+        
       </body>
     </html>
   );

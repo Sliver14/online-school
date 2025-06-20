@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { colors } from '@/lib/constants';
 import ClassCard from './ClassCard';
 import { useUser } from '../context/UserContext';
 import { useAppContext } from '../context/AppContext';
@@ -102,23 +101,23 @@ const Classes: React.FC = () => {
 
       // Fetch assessment attempts
       const assessmentPromises = classResponse.data.data.flatMap((classItem: ClassData) =>
-          classItem.assessment.length > 0
-              ? classItem.assessment.map(async (assessment: any) => {
-                try {
-                  const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
-                  if (response.data.success) {
-                    return {
-                      assessmentId: assessment.id.toString(),
-                      attempted: response.data.data.attemptCount > 0,
-                    };
-                  }
-                  return { assessmentId: assessment.id.toString(), attempted: false };
-                } catch (err) {
-                  console.error(`Error fetching assessment ${assessment.id} results:`, err);
-                  return { assessmentId: assessment.id.toString(), attempted: false };
+        classItem.assessment.length > 0
+          ? classItem.assessment.map(async (assessment: any) => {
+              try {
+                const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
+                if (response.data.success) {
+                  return {
+                    assessmentId: assessment.id.toString(),
+                    attempted: response.data.data.attemptCount > 0,
+                  };
                 }
-              })
-              : []
+                return { assessmentId: assessment.id.toString(), attempted: false };
+              } catch (err) {
+                console.error(`Error fetching assessment ${assessment.id} results:`, err);
+                return { assessmentId: assessment.id.toString(), attempted: false };
+              }
+            })
+          : []
       );
 
       const attempts = await Promise.all(assessmentPromises);
@@ -147,8 +146,8 @@ const Classes: React.FC = () => {
     const classId = classItem.id.toString();
     const isVideoWatched = videoWatched[classId];
     const allAssessmentsPassed = classItem.assessment.length > 0
-        ? classItem.assessment.every((assessment: any) => assessmentCompleted[assessment.id.toString()])
-        : true;
+      ? classItem.assessment.every((assessment: any) => assessmentCompleted[assessment.id.toString()])
+      : true;
 
     if (isVideoWatched && allAssessmentsPassed) {
       return { locked: false, reason: '' }; // Completed classes stay unlocked
@@ -166,7 +165,7 @@ const Classes: React.FC = () => {
     // Check if all assessments in previous class are completed
     if (prevClass.assessment.length > 0) {
       const allPrevAssessmentsPassed = prevClass.assessment.every((assessment: any) =>
-          assessmentCompleted[assessment.id.toString()]
+        assessmentCompleted[assessment.id.toString()]
       );
       if (!allPrevAssessmentsPassed) {
         return { locked: true, reason: `Complete assessments for ${prevClass.title}` };
@@ -225,90 +224,90 @@ const Classes: React.FC = () => {
 
   if (loading) {
     return (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
-            <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
-            My Classes
-          </h2>
+      <div className="space-y-6">
+        <h2 className="desktop_h2 tablet_h2 mobile_h2 flex items-center gap-2 text-neutral-950 dark:text-dark-text-primary">
+          <div className="w-1 h-8 rounded bg-primary-400 dark:bg-primary-400"></div>
+          My Classes
+        </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="rounded-xl border border-slate-700 overflow-hidden animate-pulse" style={{ backgroundColor: colors.tertiary }}>
-                  <div className="h-32 bg-slate-600"></div>
-                  <div className="p-6">
-                    <div className="h-6 bg-slate-600 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-600 rounded w-2/3 mb-4"></div>
-                    <div className="h-2 bg-slate-600 rounded mb-2"></div>
-                    <div className="h-3 bg-slate-600 rounded"></div>
-                  </div>
-                </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-lg border border-neutral-200 dark:border-dark-border-primary overflow-hidden animate-pulse bg-neutral-50 dark:bg-dark-bg-tertiary">
+              <div className="h-16 bg-neutral-200 dark:bg-dark-bg-secondary"></div>
+              <div className="p-6">
+                <div className="h-6 bg-neutral-200 dark:bg-dark-bg-secondary rounded mb-2"></div>
+                <div className="h-4 bg-neutral-200 dark:bg-dark-bg-secondary rounded w-2/3 mb-4"></div>
+                <div className="h-2 bg-neutral-200 dark:bg-dark-bg-secondary rounded mb-2"></div>
+                <div className="h-3 bg-neutral-200 dark:bg-dark-bg-secondary rounded"></div>
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
-            <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
-            My Classes
-          </h2>
+      <div className="space-y-2">
+        <h2 className="desktop_h2 tablet_h2 mobile_h2 flex items-center gap-2 text-neutral-950 dark:text-dark-text-primary">
+          <div className="w-1 h-8 rounded bg-primary-400 dark:bg-primary-400"></div>
+          My Classes
+        </h2>
 
-          <div className="bg-red-500 bg-opacity-10 border rounded-lg p-6 text-center">
-            <div className="text-red-500 text-lg mb-2">⚠️ Error</div>
-            <p style={{ color: colors.textMuted }}>{error}</p>
-            <button
-                onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
+        <div className="bg-error-50 dark:bg-error-dark border border-error-200 dark:border-error-600 rounded-lg p-6 text-center">
+          <div className="text-error-500 dark:text-error-400 text-lg mb-2 desktop_h3 tablet_h3 mobile_h3">⚠️ Error</div>
+          <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-error-500 dark:bg-error-600 text-white rounded-lg hover:bg-error-600 dark:hover:bg-error-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
+          >
+            Retry
+          </button>
         </div>
+      </div>
     );
   }
 
   if (classes.length === 0) {
     return (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
-            <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
-            My Classes
-          </h2>
+      <div className="space-y-6">
+        <h2 className="desktop_h2 tablet_h2 mobile_h2 flex items-center gap-2 text-neutral-950 dark:text-dark-text-primary">
+          <div className="w-1 h-8 rounded bg-primary-400 dark:bg-primary-400"></div>
+          My Classes
+        </h2>
 
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-xl font-semibold mb-2" style={{ color: colors.text }}>
-              No Classes Available
-            </h3>
-            <p style={{ color: colors.textMuted }}>
-              Classes will appear here once they are assigned to you.
-            </p>
-          </div>
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📚</div>
+          <h3 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-2 text-neutral-950 dark:text-dark-text-primary">
+            No Classes Available
+          </h3>
+          <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+            Classes will appear here once they are assigned to you.
+          </p>
         </div>
+      </div>
     );
   }
 
   return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: colors.text }}>
-          <div className="w-1 h-8 rounded" style={{ backgroundColor: colors.accent }}></div>
-          My Classes
-        </h2>
+    <div className="space-y-6">
+      <h2 className="desktop_h2 tablet_h2 mobile_h2 flex items-center gap-2 text-neutral-950 dark:text-dark-text-primary">
+        <div className="w-1 h-8 rounded bg-primary-400 dark:bg-primary-400"></div>
+        My Classes
+      </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((classItem, index) => (
-              <ClassCard
-                  key={classItem.id}
-                  classItem={classItem}
-                  index={index}
-                  isLocked={isClassLocked(classItem, index)}
-              />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {classes.map((classItem, index) => (
+          <ClassCard
+            key={classItem.id}
+            classItem={classItem}
+            index={index}
+            isLocked={isClassLocked(classItem, index)}
+          />
+        ))}
       </div>
+    </div>
   );
 };
 
