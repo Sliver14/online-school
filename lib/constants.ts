@@ -1,16 +1,16 @@
-// export const colors = {
-//   primary: '#0f172a',     // slate-900 - deep navy
-//   secondary: '#4f46e5',   // indigo-600 - vibrant indigo
-//   tertiary: '#1e293b',    // slate-800 - lighter navy
-//   accent: '#06b6d4',      // cyan-500 - bright cyan
-//   // accent: '#4f46e5',
-//   success: '#10b981',     // emerald-500 - green
-//   warning: '#f59e0b',     // amber-500 - orange
-//   danger: '#ef4444',      // red-500 - red
-//   white: '#ffffff',
-//   text: '#f1f5f9',        // slate-100 - light text
-//   textMuted: '#94a3b8'    // slate-400 - muted text
-// };
+export const colors = {
+  primary: '#0f172a',     // slate-900 - deep navy
+  secondary: '#4f46e5',   // indigo-600 - vibrant indigo
+  tertiary: '#1e293b',    // slate-800 - lighter navy
+  accent: '#06b6d4',      // cyan-500 - bright cyan
+  // accent: '#4f46e5',
+  success: '#10b981',     // emerald-500 - green
+  warning: '#f59e0b',     // amber-500 - orange
+  danger: '#ef4444',      // red-500 - red
+  white: '#ffffff',
+  text: '#f1f5f9',        // slate-100 - light text
+  textMuted: '#94a3b8'    // slate-400 - muted text
+};
 
 export interface ClassItem {
   id: string;

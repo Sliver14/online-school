@@ -146,7 +146,7 @@ const Welcome = () => {
                   size={24}
                   className={`relative z-10 mr-2 transform transition-transform duration-300 ${isLoginHovered ? 'rotate-12' : ''}`}
               />
-              <span className="relative z-10">Log in</span>
+              <span className="relative z-10">Signin</span>
             </button>
           </div>
 

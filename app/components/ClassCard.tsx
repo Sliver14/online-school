@@ -51,9 +51,9 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked }) => 
       <div className={`h-16 bg-gradient-to-r ${getGradientColor(index)} flex items-center justify-center text-white dark:text-dark-text-primary text-lg font-semibold relative`}>
         <span className="text-center px-4 text-sm">{classItem.classNumber || `Class ${index + 1}`}</span>
         {isLocked.locked && (
-          <div className="absolute top-1 right-1 flex items-center gap-1 bg-error-500 dark:bg-error-700 text-white text-xs px-2 py-0.5 rounded-full">
+          <div className="absolute top-3 right-3 flex items-center gap-1 bg-error-500 dark:bg-error-700 text-white text-xs p-2  rounded-full">
             <Lock className="w-3 h-3" />
-            Locked
+            {/* Locked */}
           </div>
         )}
       </div>

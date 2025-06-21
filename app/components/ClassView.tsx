@@ -266,7 +266,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     try {
       await handleVideoComplete(selectedClassId);
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
+      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 24 hours later
 
       // Mark current class video as watched
       const currentResponse = await axios.post('/api/user-progress/video-watched', {
@@ -455,29 +455,29 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleEssayUpload = async (resource: ResourceData) => {
-    if (!essayFile) {
-      showNotification('error', 'Please select a file to upload.');
-      return;
-    }
-    try {
-      const formData = new FormData();
-      formData.append('file', essayFile);
-      formData.append('userId', userId);
-      formData.append('classId', selectedClassId);
-      formData.append('content', essayFile.name);
+  if (!essayFile) {
+    showNotification('error', 'Please select a file to upload.');
+    return;
+  }
+  try {
+    const formData = new FormData();
+    formData.append('file', essayFile);
+    formData.append('userId', userId);
+    formData.append('classId', selectedClassId);
+    formData.append('content', essayFile.name);
 
-      const response = await axios.post('/api/user-progress/submit-essay', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      if (response.data.success) {
-        showNotification('success', 'Essay submitted successfully!');
-        setEssayFile(null);
-      } else {
-        throw new Error(response.data.error || 'Failed to submit essay');
-      }
-    } catch (error) {
-      handleError('Failed to upload essay', error);
+    const response = await axios.post('/api/user-progress/submit-essay', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    if (response.data.success) {
+      showNotification('success', 'Essay submitted successfully!');
+      setEssayFile(null);
+    } else {
+      throw new Error(response.data.error || 'Failed to submit essay');
     }
+  } catch (error: any) {
+    handleError(error.response?.data?.error || 'Failed to upload essay', error);
+  }
   };
 
   const handleVideoSelect = (video: VideoData) => {

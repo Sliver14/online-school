@@ -31,7 +31,6 @@ const Classes: React.FC = () => {
   const { classes, setClasses, videoWatched, assessmentCompleted, initializeProgress } = useAppContext();
   const renderCount = useRef(0);
 
-  // Debug re-renders
   useEffect(() => {
     renderCount.current += 1;
     console.log(`Classes component rendered ${renderCount.current} times`);
@@ -45,7 +44,7 @@ const Classes: React.FC = () => {
     }
 
     try {
-      console.log('Fetching classes and progress...');
+      console.log('Fetching classes and progress for user:', userId);
       setLoading(true);
 
       // Fetch classes
@@ -103,18 +102,22 @@ const Classes: React.FC = () => {
       const assessmentPromises = classResponse.data.data.flatMap((classItem: ClassData) =>
         classItem.assessment.length > 0
           ? classItem.assessment.map(async (assessment: any) => {
+              if (!assessment.id || isNaN(parseInt(assessment.id))) {
+                console.warn(`Invalid assessment ID for class ${classItem.id}:`, assessment.id);
+                return { assessmentId: assessment.id?.toString() || 'invalid', attempted: false };
+              }
               try {
+                console.log(`Fetching assessment results for assessment ${assessment.id}, user ${userId}`);
                 const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
-                if (response.data.success) {
-                  return {
-                    assessmentId: assessment.id.toString(),
-                    attempted: response.data.data.attemptCount > 0,
-                  };
-                }
-                return { assessmentId: assessment.id.toString(), attempted: false };
-              } catch (err) {
-                console.error(`Error fetching assessment ${assessment.id} results:`, err);
-                return { assessmentId: assessment.id.toString(), attempted: false };
+                console.log(`Assessment ${assessment.id} response:`, response.data);
+                return {
+                  assessmentId: assessment.id.toString(),
+                  attempted: response.data.success ? response.data.data.attemptCount > 0 : false,
+                  isPassed: response.data.success ? response.data.data.isPassed : false,
+                };
+              } catch (err: any) {
+                console.error(`Error fetching assessment ${assessment.id} results:`, err.message);
+                return { assessmentId: assessment.id.toString(), attempted: false, isPassed: false };
               }
             })
           : []
@@ -122,7 +125,9 @@ const Classes: React.FC = () => {
 
       const attempts = await Promise.all(assessmentPromises);
       const attemptsMap = attempts.reduce((acc, { assessmentId, attempted }) => ({ ...acc, [assessmentId]: attempted }), {});
+      const assessmentCompletedMap = attempts.reduce((acc, { assessmentId, isPassed }) => ({ ...acc, [assessmentId]: isPassed }), {});
       setAssessmentAttempts(attemptsMap);
+      initializeProgress({ assessmentCompleted: assessmentCompletedMap });
 
     } catch (err) {
       console.error('Error fetching classes or progress:', err);
@@ -137,12 +142,9 @@ const Classes: React.FC = () => {
     fetchClassesAndProgress();
   }, [fetchClassesAndProgress]);
 
-  // Determine if a class is locked
   const isClassLocked = useCallback((classItem: ClassData, index: number) => {
-    // First class is always unlocked
     if (index === 0) return { locked: false, reason: '' };
 
-    // Check if current class is completed
     const classId = classItem.id.toString();
     const isVideoWatched = videoWatched[classId];
     const allAssessmentsPassed = classItem.assessment.length > 0
@@ -150,19 +152,16 @@ const Classes: React.FC = () => {
       : true;
 
     if (isVideoWatched && allAssessmentsPassed) {
-      return { locked: false, reason: '' }; // Completed classes stay unlocked
+      return { locked: false, reason: '' };
     }
 
-    // Check previous class
     const prevClass = classes[index - 1];
     const prevClassId = prevClass?.id.toString();
 
-    // Check if previous class video is watched
     if (!prevClass || !videoWatched[prevClassId]) {
       return { locked: true, reason: prevClass ? `Complete video for ${prevClass.title}` : 'Previous class not found' };
     }
 
-    // Check if all assessments in previous class are completed
     if (prevClass.assessment.length > 0) {
       const allPrevAssessmentsPassed = prevClass.assessment.every((assessment: any) =>
         assessmentCompleted[assessment.id.toString()]
@@ -172,7 +171,6 @@ const Classes: React.FC = () => {
       }
     }
 
-    // Check timer for current class
     const timer = classTimers[classId];
     if (timer?.timerActive && timer.timerExpiresAt) {
       const now = new Date();
@@ -185,7 +183,6 @@ const Classes: React.FC = () => {
     return { locked: false, reason: '' };
   }, [classes, videoWatched, assessmentCompleted, classTimers]);
 
-  // Format time remaining for countdown
   const formatTimeRemaining = useCallback((expiresAt: Date) => {
     const now = new Date();
     const diffMs = expiresAt.getTime() - now.getTime();
@@ -198,7 +195,6 @@ const Classes: React.FC = () => {
     return `${hours > 0 ? `${hours}h ` : ''}${minutes > 0 ? `${minutes}m ` : ''}${seconds}s`;
   }, []);
 
-  // Update countdown timers
   useEffect(() => {
     const interval = setInterval(() => {
       setClassTimers(prev => {
@@ -214,7 +210,6 @@ const Classes: React.FC = () => {
             }
           }
         });
-        // Only return new object if changed to prevent re-renders
         return changed ? updated : prev;
       });
     }, 1000);
