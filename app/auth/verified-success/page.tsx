@@ -37,7 +37,7 @@ export default function VerifiedSuccess() {
   }, [resendCooldown]);
 
   const handleContinue = () => {
-    router.push('/auth');
+    router.push('/auth?mode=signin');
     // alert('Redirecting to login...');
   };
 

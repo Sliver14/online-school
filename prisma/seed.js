@@ -54,6 +54,7 @@ async function main() {
                 order: 8,
             },
         ],
+        // skipDuplicates: true,
     });
 
     // Create 8 videos (1 per class)
@@ -132,6 +133,241 @@ async function main() {
                 order: 1,
             },
         ],
+        // skipDuplicates: true,
+    });
+
+    // Create 16 resources (2 per class)
+    const resources = await prisma.classResource.createMany({
+        data: [
+            // Class 1 Resources
+            {
+                id: 1,
+                classId: 1,
+                title: 'New Creature Study Guide',
+                type: 'READ',
+                content: 'A comprehensive guide summarizing the key points about the new creature in Christ.',
+                resourceUrl: 'https://res.cloudinary.com/dfi8bpolg/raw/upload/v1750331234/sample.pdf',
+                order: 1,
+            },
+            {
+                id: 9,
+                classId: 1,
+                title: 'New Creature Essay',
+                type: 'ESSAY',
+                content: 'Write a 400-word essay on what it means to be a new creature in Christ.',
+                order: 2,
+            },
+            // Class 2 Resources
+            {
+                id: 2,
+                classId: 2,
+                title: 'Holy Spirit Reflection Essay',
+                type: 'ESSAY',
+                content: 'Write a 500-word essay on how the Holy Spirit influences your daily life as a Christian.',
+                order: 1,
+            },
+            {
+                id: 10,
+                classId: 2,
+                title: 'Holy Spirit Key Points',
+                type: 'NOTE',
+                content: 'Summary of the roles and gifts of the Holy Spirit in the believer’s life.',
+                order: 2,
+            },
+            // Class 3 Resources
+            {
+                id: 3,
+                classId: 3,
+                title: 'Christian Doctrines Notes',
+                type: 'NOTE',
+                content: 'Key notes on foundational Christian doctrines, including the Trinity and Salvation.',
+                order: 1,
+            },
+            {
+                id: 11,
+                classId: 3,
+                title: 'Doctrines Study Guide',
+                type: 'READ',
+                content: 'Detailed guide on core Christian doctrines for deeper understanding.',
+                resourceUrl: 'https://res.cloudinary.com/dfi8bpolg/raw/upload/v1750331234/sample.pdf',
+                order: 2,
+            },
+            // Class 4 Resources
+            {
+                id: 4,
+                classId: 4,
+                title: 'Evangelism Strategies Guide',
+                type: 'READ',
+                content: 'Practical strategies for effective evangelism in your community.',
+                resourceUrl: 'https://res.cloudinary.com/dfi8bpolg/raw/upload/v1750331234/sample.pdf',
+                order: 1,
+            },
+            {
+                id: 12,
+                classId: 4,
+                title: 'Evangelism Outreach Plan',
+                type: 'ASSIGNMENT',
+                content: 'Develop a plan for a local evangelism outreach event in 300 words.',
+                order: 2,
+            },
+            // Class 5 Resources
+            {
+                id: 5,
+                classId: 5,
+                title: 'Cell Ministry Essay Assignment',
+                type: 'ESSAY',
+                content: 'Describe in 300 words the benefits of cell groups for church growth.',
+                order: 1,
+            },
+            {
+                id: 13,
+                classId: 5,
+                title: 'Cell Ministry Resources',
+                type: 'LINK',
+                content: 'Explore online resources for effective cell group management.',
+                resourceUrl: 'https://www.cellministry.org/resources',
+                order: 2,
+            },
+            // Class 6 Resources
+            {
+                id: 6,
+                classId: 6,
+                title: 'Character and Prosperity Summary',
+                type: 'NOTE',
+                content: 'Summary of biblical principles for developing Christian character and prosperity.',
+                order: 1,
+            },
+            {
+                id: 14,
+                classId: 6,
+                title: 'Prosperity Reflection Essay',
+                type: 'ESSAY',
+                content: 'Write a 400-word essay on biblical prosperity and its role in Christian life.',
+                order: 2,
+            },
+            // Class 7 Resources
+            {
+                id: 7,
+                classId: 7,
+                title: 'Loveworld Inc. Vision',
+                type: 'LINK',
+                content: 'Learn more about the vision and mission of Loveworld Inc.',
+                resourceUrl: 'https://www.loveworld.org/about',
+                order: 1,
+            },
+            {
+                id: 15,
+                classId: 7,
+                title: 'Local Church Guide',
+                type: 'READ',
+                content: 'Guide on the role and importance of the local church in a believer’s life.',
+                resourceUrl: 'https://res.cloudinary.com/dfi8bpolg/raw/upload/v1750331234/sample.pdf',
+                order: 2,
+            },
+            // Class 8 Resources
+            {
+                id: 8,
+                classId: 8,
+                title: 'Mobile Technology Tools',
+                type: 'READ',
+                content: 'List of mobile apps and tools for evangelism and personal growth.',
+                order: 1,
+            },
+            {
+                id: 16,
+                classId: 8,
+                title: 'Mobile App Development Task',
+                type: 'ASSIGNMENT',
+                content: 'Propose a mobile app idea for evangelism in 250 words.',
+                order: 2,
+            },
+        ],
+    });
+
+    // Create 1 exam
+    const exam = await prisma.exam.create({
+        data: {
+            id: 1,
+            title: 'Final Foundation School Exam',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
+    });
+
+    // Create 10 exam questions
+    const examQuestions = await prisma.examQuestion.createMany({
+        data: [
+            {
+                id: 1,
+                examId: 1,
+                text: 'What is the primary identity of the new creature in Christ?',
+                options: ['A new spiritual being', 'A reformed sinner', 'A church member', 'A religious scholar'],
+                correctAnswer: 'A new spiritual being',
+            },
+            {
+                id: 2,
+                examId: 1,
+                text: 'Who baptizes believers into the body of Christ according to the Holy Spirit class?',
+                options: ['The Pastor', 'The Holy Spirit', 'Jesus Christ', 'The Apostles'],
+                correctAnswer: 'The Holy Spirit',
+            },
+            {
+                id: 3,
+                examId: 1,
+                text: 'Which doctrine emphasizes that Jesus is both fully God and fully man?',
+                options: ['Trinity', 'Atonement', 'Hypostatic Union', 'Resurrection'],
+                correctAnswer: 'Hypostatic Union',
+            },
+            {
+                id: 4,
+                examId: 1,
+                text: 'What is the main purpose of evangelism?',
+                options: ['Raising funds', 'Sharing the Gospel', 'Building churches', 'Teaching doctrine'],
+                correctAnswer: 'Sharing the Gospel',
+            },
+            {
+                id: 5,
+                examId: 1,
+                text: 'What is the primary function of cell groups in church ministry?',
+                options: ['Organizing events', 'Fellowship and discipleship', 'Fundraising', 'Construction'],
+                correctAnswer: 'Fellowship and discipleship',
+            },
+            {
+                id: 6,
+                examId: 1,
+                text: 'Which characteristic is emphasized as key to Christian character?',
+                options: ['Wealth', 'Humility', 'Popularity', 'Power'],
+                correctAnswer: 'Humility',
+            },
+            {
+                id: 7,
+                examId: 1,
+                text: 'What is the core mission of Loveworld Inc.?',
+                options: ['Education', 'Global ministry and evangelism', 'Healthcare', 'Technology'],
+                correctAnswer: 'Global ministry and evangelism',
+            },
+            {
+                id: 8,
+                examId: 1,
+                text: 'How does mobile technology support evangelism?',
+                options: ['Building websites', 'Spreading the Gospel via apps', 'Hosting concerts', 'Printing books'],
+                correctAnswer: 'Spreading the Gospel via apps',
+            },
+            {
+                id: 9,
+                examId: 1,
+                text: 'What is one way to receive the Holy Spirit?',
+                options: ['Fasting for 40 days', 'Praying with faith to receive Him', 'Joining a choir', 'Reading the Bible daily'],
+                correctAnswer: 'Praying with faith to receive Him',
+            },
+            {
+                id: 10,
+                examId: 1,
+                text: 'What does the term "new creature" signify in Christian doctrine?',
+                options: ['A new physical body', 'A transformed spiritual identity', 'A new church role', 'A new career path'],
+                correctAnswer: 'A transformed spiritual identity',
+            },
+        ],
     });
 
     // Create 8 assessments (1 per class)
@@ -146,6 +382,7 @@ async function main() {
             { id: 7, classId: 7, title: 'Local Assembly Assessment' },
             { id: 8, classId: 8, title: 'Mobile Technology Quiz' },
         ],
+        // skipDuplicates: true,
     });
 
     // Create questions (10 for Class 2's assessment, 1 for each other assessment)
@@ -165,7 +402,7 @@ async function main() {
                 assessmentId: 2,
                 text: 'The Pentecost is not a Christian feast but rather refers to a _______ celebration.',
                 options: ['Greek', 'Jewish', 'English', 'German'],
-                correctAnswer: 'Greek',
+                correctAnswer: 'Jewish',
             },
             {
                 id: 3,
@@ -179,57 +416,57 @@ async function main() {
                 assessmentId: 2,
                 text: 'Being baptized into the Holy Spirit and receiving the Holy Spirit are the same experience?',
                 options: ['True', 'False', 'Not really', 'None of the above'],
-                correctAnswer: 'True',
+                correctAnswer: 'False',
             },
             {
                 id: 5,
                 assessmentId: 2,
                 text: 'You can’t receive a double anointing because',
                 options: [
-                    'It will be too much for you to function in as a New Creature',
+                    'The Holy Spirit is given in fullness once',
                     'The one who gives the anointing is in you in His fullness',
-                    'It is just for ordained ministers',
-                    'You are not a celestial being',
+                    'It is reserved for pastors only',
+                    'It is not biblical',
                 ],
-                correctAnswer: 'It will be too much for you to function in as a New Creature',
+                correctAnswer: 'The one who gives the anointing is in you in His fullness',
             },
             {
                 id: 6,
                 assessmentId: 2,
                 text: 'The Holy Spirit Proceeds _____________ the father',
                 options: ['With', 'To', 'From', 'Away'],
-                correctAnswer: 'With',
+                correctAnswer: 'From',
             },
             {
                 id: 7,
                 assessmentId: 2,
                 text: 'How does God live in you?',
                 options: ['By His Grace', 'By His mercy', 'By His Spirit', 'By His love'],
-                correctAnswer: 'By His Grace',
+                correctAnswer: 'By His Spirit',
             },
             {
                 id: 8,
                 assessmentId: 2,
                 text: 'One of the ways to receive the Holy Spirit is',
                 options: [
-                    'By studying the Word voraciously and meditating on it without fail',
+                    'By studying the Word voraciously',
                     'By fasting consistently',
-                    'By praying without ceasing',
-                    'By simply and with reverence saying a prayer to receive Him, and by faith receiving Him',
+                    'By praying with faith to receive Him',
+                    'By attending church regularly',
                 ],
-                correctAnswer: 'By studying the Word voraciously and meditating on it without fail',
+                correctAnswer: 'By praying with faith to receive Him',
             },
             {
                 id: 9,
                 assessmentId: 2,
                 text: 'Speaking in tongues is all but one of the following',
                 options: [
-                    'One of the ways that we edify ourselves',
-                    'The self-improvement plan of the Holy Spirit',
-                    'A human language not understood by the Speaker',
+                    'A way to edify oneself',
+                    'A sign of the Holy Spirit',
+                    'A human language not understood by the speaker',
                     'A way to glorify God',
                 ],
-                correctAnswer: 'One of the ways that we edify ourselves',
+                correctAnswer: 'A human language not understood by the speaker',
             },
             {
                 id: 10,
@@ -242,8 +479,8 @@ async function main() {
                 id: 11,
                 assessmentId: 2,
                 text: 'One of these is a gift of the Spirit as listed in 1 Cor. 12: 8 - 10',
-                options: ['Greater Anointing', 'New levels of Grace', 'Diverse kinds of tongues', 'Peace of mind'],
-                correctAnswer: 'Greater Anointing',
+                options: ['Word of Wisdom', 'New levels of Grace', 'Peace of mind', 'Greater Anointing'],
+                correctAnswer: 'Word of Wisdom',
             },
             // Question for Class 3
             {
@@ -294,6 +531,7 @@ async function main() {
                 correctAnswer: 'Spreading the Gospel via apps',
             },
         ],
+        // skipDuplicates: true,
     });
 
     console.log('Seeding completed successfully!');

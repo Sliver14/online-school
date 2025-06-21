@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-import { sendVerificationEmail } from "@/utils/email";
+import { sendEmail } from "@/utils/email";
 
 export async function POST(req: NextRequest) {
     try {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         // Send verification email
         const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}//api/auth/signup/verify?token=${verificationToken}`;
         try {
-            await sendVerificationEmail(email, firstName, verificationLink, "signup");
+            await sendEmail(email, firstName, verificationLink, "signup");
         } catch (emailError) {
             console.error("Email sending failed:", emailError);
             return NextResponse.json(

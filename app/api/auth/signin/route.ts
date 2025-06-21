@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-import { sendVerificationEmail } from "@/utils/email";
+import { sendEmail } from "@/utils/email";
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (!user) {
-            return NextResponse.json({ error: "Invalid email or password" }, { status: 400 });
+            return NextResponse.json({ error: "Create your account" }, { status: 400 });
         }
 
         if (!user.verified) {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
             // Send verification email
             const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/signup/verify?token=${verificationToken}`;
-            await sendVerificationEmail(user.email, user.firstName, verificationLink, "resend");
+            await sendEmail(user.email, user.firstName, verificationLink, "resend");
 
             return NextResponse.json(
                 { error: "User not verified. A verification link has been sent to your email." },
