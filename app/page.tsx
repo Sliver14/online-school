@@ -343,7 +343,7 @@ const OnlineSchool = () => {
               }`}
               onClick={() => {
                 if (isExamUnlocked) {
-                  router.push('/examination');
+                  router.replace('/examination');
                 }
               }}
             >

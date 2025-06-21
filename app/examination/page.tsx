@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Clock } from 'lucide-react';
 import { useUser } from '../context/UserContext';
+import { useAppContext } from '../context/AppContext';
 
 type Question = {
   id: number;
@@ -20,6 +21,7 @@ type Exam = {
 const Examination = () => {
   const router = useRouter();
   const { userDetails } = useUser();
+  const { classes, videoWatched, assessmentCompleted } = useAppContext();
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +31,39 @@ const Examination = () => {
   const [result, setResult] = useState<{ score: number; correctAnswers: number; totalQuestions: number } | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(3600); // 1 hour in seconds
+  const [progressChecked, setProgressChecked] = useState(false);
+
+  // Check user progress and protect route
+  // useEffect(() => {
+  //   if (!userDetails?.id) {
+  //     router.push('/auth?mode=signin');
+  //     return;
+  //   }
+
+  //   // Calculate overall progress
+  //   const totalClasses = classes.length;
+  //   const completedClasses = classes.reduce((count, classItem) => {
+  //     const classId = classItem.id.toString();
+  //     const isVideoWatched = videoWatched[classId];
+  //     const allAssessmentsCompleted =
+  //       classItem.assessments.length > 0
+  //         ? classItem.assessments.every((assessment: any) => assessmentCompleted[assessment.id.toString()])
+  //         : true;
+  //     return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
+  //   }, 0);
+  //   const overallProgress = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
+
+  //   if (overallProgress === 100) {
+  //     setProgressChecked(true);
+  //   } else {
+  //     setError('Complete all classes to access the exam');
+  //     router.push('/');
+  //   }
+  // }, [userDetails, classes, videoWatched, assessmentCompleted, router]);
 
   // Fetch exam data
   useEffect(() => {
+    // if (!progressChecked) return;
     const fetchExam = async () => {
       try {
         const response = await fetch('/api/exam');
@@ -52,7 +84,7 @@ const Examination = () => {
 
   // Timer logic
   useEffect(() => {
-    if (!showStartModal && timeLeft > 0) {
+    if (!showStartModal && timeLeft > 0 && !showResultModal) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -64,7 +96,7 @@ const Examination = () => {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [showStartModal, timeLeft]);
+  }, [showStartModal, timeLeft, showResultModal]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -108,6 +140,27 @@ const Examination = () => {
     setShowStartModal(false);
   };
 
+  const handleRetake = () => {
+    setAnswers({});
+    setTimeLeft(3600);
+    setShowResultModal(false);
+    setResult(null);
+    setShowStartModal(true);
+  };
+
+  // Check if all questions are answered
+  const allQuestionsAnswered = exam
+    ? exam.questions.every((question) => answers[question.id] !== undefined)
+    : false;
+
+  // if (!progressChecked) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
+  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 dark:border-primary-400"></div>
+  //     </div>
+  //   );
+  // }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
@@ -116,18 +169,30 @@ const Examination = () => {
     );
   }
 
-  if (error) {
+if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary gap-4">
         <p className="desktop_h3 tablet_h3 mobile_h3 text-neutral-950 dark:text-dark-text-primary">{error}</p>
+        <button
+          onClick={() => router.push('/')}
+          className="px-6 py-2 rounded-lg bg-primary-400 text-white hover:bg-primary-500"
+        >
+          Back Home
+        </button>
       </div>
     );
   }
 
   if (!exam) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary gap-4">
         <p className="desktop_h3 tablet_h3 mobile_h3 text-neutral-950 dark:text-dark-text-primary">Exam not found</p>
+        <button
+          onClick={() => router.push('/')}
+          className="px-6 py-2 rounded-lg bg-primary-400 text-white hover:bg-primary-500"
+        >
+          Back Home
+        </button>
       </div>
     );
   }
@@ -184,12 +249,22 @@ const Examination = () => {
                   <strong>Score:</strong> {result?.score}%<br />
                   <strong>Correct Answers:</strong> {result?.correctAnswers} / {result?.totalQuestions}
                 </p>
-                <button
-                  onClick={() => router.push('/')}
-                  className="w-full px-4 py-2 rounded-lg bg-primary-400 text-white hover:bg-primary-500"
-                >
-                  Return to Home
-                </button>
+                <div className="flex gap-4">
+                  {result?.score < 100 && (
+                    <button
+                      onClick={handleRetake}
+                      className="flex-1 px-4 py-2 rounded-lg bg-secondary-400 text-white hover:bg-secondary-500"
+                    >
+                      Retake Exam
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push('/')}
+                    className="flex-1 px-4 py-2 rounded-lg bg-primary-400 text-white hover:bg-primary-500"
+                  >
+                    Return to Home
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -246,8 +321,8 @@ const Examination = () => {
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-4 py-2 rounded-lg bg-primary-400 text-white hover:bg-primary-500"
-            disabled={resultLoading}
+            className="flex-1 px-4 py-2 rounded-lg bg-primary-400 text-white hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={resultLoading || !allQuestionsAnswered}
           >
             Submit Exam
           </button>
