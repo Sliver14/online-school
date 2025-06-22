@@ -18,6 +18,51 @@ type Exam = {
   questions: Question[];
 };
 
+interface AssessmentData {
+  id: number;
+  title: string;
+  questions: Question[];
+}
+
+interface VideoData {
+  id: number;
+  title: string;
+  videoUrl: string;
+  classNumber: number;
+  videoPosterUrl?: string;
+  order: number;
+}
+
+interface ResourceData {
+  id: number;
+  title: string;
+  type: 'READ' | 'ESSAY' | 'VIDEO' | 'LINK' | 'ASSIGNMENT' | 'NOTE';
+  content?: string;
+  resourceUrl?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ClassData {
+  id: number;
+  title: string;
+  description: string;
+  classNumber: string;
+  duration: string;
+  videoUrl: string;
+  posterUrl: string;
+  assessments: AssessmentData[];
+  videos: VideoData[];
+  resources: ResourceData[];
+}
+
+interface Result {
+  score: number;
+  correctAnswers: number;
+  totalQuestions: number;
+}
+
 const Examination = () => {
   const router = useRouter();
   const { userDetails } = useUser();
@@ -28,42 +73,42 @@ const Examination = () => {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showStartModal, setShowStartModal] = useState(true);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [result, setResult] = useState<{ score: number; correctAnswers: number; totalQuestions: number } | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(3600); // 1 hour in seconds
   const [progressChecked, setProgressChecked] = useState(false);
 
   // Check user progress and protect route
-  // useEffect(() => {
-  //   if (!userDetails?.id) {
-  //     router.push('/auth?mode=signin');
-  //     return;
-  //   }
+  useEffect(() => {
+    if (!userDetails?.id) {
+      router.push('/auth?mode=signin');
+      return;
+    }
 
-  //   // Calculate overall progress
-  //   const totalClasses = classes.length;
-  //   const completedClasses = classes.reduce((count, classItem) => {
-  //     const classId = classItem.id.toString();
-  //     const isVideoWatched = videoWatched[classId];
-  //     const allAssessmentsCompleted =
-  //       classItem.assessments.length > 0
-  //         ? classItem.assessments.every((assessment: any) => assessmentCompleted[assessment.id.toString()])
-  //         : true;
-  //     return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
-  //   }, 0);
-  //   const overallProgress = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
+    // Calculate overall progress
+    const totalClasses = classes.length;
+    const completedClasses = classes.reduce((count, classItem) => {
+      const classId = classItem.id.toString();
+      const isVideoWatched = videoWatched[classId];
+      const allAssessmentsCompleted =
+        classItem.assessments.length > 0
+          ? classItem.assessments.every((assessment) => assessmentCompleted[assessment.id.toString()])
+          : true;
+      return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
+    }, 0);
+    const overallProgress = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
 
-  //   if (overallProgress === 100) {
-  //     setProgressChecked(true);
-  //   } else {
-  //     setError('Complete all classes to access the exam');
-  //     router.push('/');
-  //   }
-  // }, [userDetails, classes, videoWatched, assessmentCompleted, router]);
+    if (overallProgress === 100) {
+      setProgressChecked(true);
+    } else {
+      setError('Complete all classes to access the exam');
+      router.push('/');
+    }
+  }, [userDetails, classes, videoWatched, assessmentCompleted, router]);
 
   // Fetch exam data
   useEffect(() => {
-    // if (!progressChecked) return;
+    if (!progressChecked) return;
     const fetchExam = async () => {
       try {
         const response = await fetch('/api/exam');
@@ -80,7 +125,7 @@ const Examination = () => {
       }
     };
     fetchExam();
-  }, []);
+  }, [progressChecked]);
 
   // Timer logic
   useEffect(() => {
@@ -120,10 +165,14 @@ const Examination = () => {
       });
       const data = await response.json();
       if (data.success) {
-        setResult(data);
+        setResult({
+          score: data.score || 0,
+          correctAnswers: data.correctAnswers || 0,
+          totalQuestions: data.totalQuestions || exam.questions.length,
+        });
         setShowResultModal(true);
       } else {
-        setError(data.error);
+        setError(data.error || 'Failed to submit exam');
       }
     } catch (err) {
       setError('Failed to submit exam');
@@ -153,13 +202,13 @@ const Examination = () => {
     ? exam.questions.every((question) => answers[question.id] !== undefined)
     : false;
 
-  // if (!progressChecked) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
-  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 dark:border-primary-400"></div>
-  //     </div>
-  //   );
-  // }
+  if (!progressChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 dark:border-primary-400"></div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -169,7 +218,7 @@ const Examination = () => {
     );
   }
 
-if (error) {
+  if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary gap-4">
         <p className="desktop_h3 tablet_h3 mobile_h3 text-neutral-950 dark:text-dark-text-primary">{error}</p>
@@ -246,11 +295,11 @@ if (error) {
                   Exam Results
                 </h3>
                 <p className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted mb-4">
-                  <strong>Score:</strong> {result?.score}%<br />
-                  <strong>Correct Answers:</strong> {result?.correctAnswers} / {result?.totalQuestions}
+                  <strong>Score:</strong> {result?.score ?? 0}%<br />
+                  <strong>Correct Answers:</strong> {result?.correctAnswers ?? 0} / {result?.totalQuestions ?? exam.questions.length}
                 </p>
                 <div className="flex gap-4">
-                  {result?.score < 100 && (
+                  {result && result.score < 100 && (
                     <button
                       onClick={handleRetake}
                       className="flex-1 px-4 py-2 rounded-lg bg-secondary-400 text-white hover:bg-secondary-500"

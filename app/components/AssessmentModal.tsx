@@ -12,7 +12,7 @@ const defaultColors = {
   success: '#10B981', // text-green-500
   warning: '#F59E0B', // text-yellow-500
   accent: '#3B82F6', // text-blue-500
-  error: '#EF4444', // text-red-500
+  danger: '#EF4444', // text-red-500
   primary: '#111827', // bg-gray-800
   secondary: '#4B5563', // bg-gray-600
 };
@@ -154,7 +154,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
             key={question.id}
             className="p-4 rounded-lg border"
             style={{
-              borderColor: answers[index] === question.correctAnswer ? colors.success : colors.error,
+              borderColor: answers[index] === question.correctAnswer ? colors.success : colors.danger,
               backgroundColor: colors.primary,
             }}
           >
@@ -162,14 +162,14 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
               {answers[index] === question.correctAnswer ? (
                 <CheckCircle className="w-5 h-5" style={{ color: colors.success }} />
               ) : (
-                <XCircle className="w-5 h-5" style={{ color: colors.error }} />
+                <XCircle className="w-5 h-5" style={{ color: colors.danger }} />
               )}
               <h4 className="text-lg font-semibold" style={{ color: colors.text }}>
                 {question.question}
               </h4>
             </div>
             <p className="text-sm" style={{ color: colors.textMuted }}>
-              Your Answer: <span style={{ color: answers[index] === question.correctAnswer ? colors.success : colors.error }}>
+              Your Answer: <span style={{ color: answers[index] === question.correctAnswer ? colors.success : colors.danger }}>
                 {answers[index] || 'No answer selected'}
               </span>
             </p>

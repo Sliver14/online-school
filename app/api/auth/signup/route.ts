@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
             kcUsername,
             phoneNumber,
             city,
+            country,
         } = await req.json();
 
         if (!firstName || !email || !password) {
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
                         zone,
                         phoneNumber,
                         city,
+                        country,
                         kcUsername,
                         verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
                     },
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
                     zone,
                     phoneNumber,
                     city,
+                    country,
                     kcUsername,
                     verificationToken,
                     verified: false,
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Send verification email
-        const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}//api/auth/signup/verify?token=${verificationToken}`;
+        const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/signup/verify?token=${verificationToken}`;
         try {
             await sendEmail(email, firstName, verificationLink, "signup");
         } catch (emailError) {

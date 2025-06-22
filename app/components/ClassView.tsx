@@ -166,7 +166,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       setError(null);
 
       try {
-        const response = await axios.get(`/api/classes/${selectedClassId}`);
+        const response = await axios.get(`/api/classes?id=${selectedClassId}`);
         if (response.data.success) {
           const fetchedClassData = response.data.data;
           setClassData(fetchedClassData);
@@ -195,6 +195,11 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     if (!classData || !classData.assessments.length) return;
 
     const checkTimers = async () => {
+      if (!userId || !selectedClassId) {
+        showNotification('error', 'User ID or Class ID missing');
+        return;
+      }
+
       const timerResponse = await axios.get(`/api/user-progress/class-timers?userId=${userId}&classId=${selectedClassId}`);
       if (timerResponse.data.success && timerResponse.data.data.length > 0) {
         const timer = timerResponse.data.data[0];
@@ -208,8 +213,8 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
               if (!assessmentAttempts[assessmentId] && !assessmentCompleted[assessmentId]) {
                 try {
                   const response = await axios.post('/api/user-progress/submit-assessment', {
-                    userId: parseInt(userId),
-                    classId: parseInt(selectedClassId),
+                    userId, // Send as string
+                    classId: selectedClassId, // Send as string
                     answers: {},
                     score: 0,
                     isPassed: false,
@@ -264,14 +269,18 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   const handleVideoEnd = async () => {
     setIsPlaying(false);
     try {
+      if (!userId || !selectedClassId) {
+        throw new Error('User ID or Class ID missing');
+      }
+
       await handleVideoComplete(selectedClassId);
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 2 * 60 * 1000); // 24 hours later
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
 
       // Mark current class video as watched
       const currentResponse = await axios.post('/api/user-progress/video-watched', {
-        userId: parseInt(userId),
-        classId: parseInt(selectedClassId),
+        userId, // Send as string
+        classId: selectedClassId, // Send as string
         videoId: selectedVideo?.id,
         watchedAt: now.toISOString(),
         timerActive: false,
@@ -292,8 +301,8 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       if (nextClass) {
         // Set timer for the next class using class-timers endpoint
         const timerResponse = await axios.post('/api/user-progress/class-timers', {
-          userId: parseInt(userId),
-          classId: nextClass.id,
+          userId, // Send as string
+          classId: nextClass.id.toString(), // Convert to string
           timerExpiresAt: expiresAt.toISOString(),
           timerActive: true,
         });
@@ -344,7 +353,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleAssessmentStart = async (assessment: AssessmentData) => {
-    if (!videoWatched[selectedClassId]) {
+    if (!selectedClassId || !videoWatched[selectedClassId]) {
       showNotification('error', 'Please watch the class video before taking the assessment.');
       return;
     }
@@ -359,18 +368,20 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   const handleAssessmentCompleteLocal = async (score: number, answers: string[]) => {
     try {
-      const formattedAnswers: Record<string, number> = {};
-      if (selectedAssessment?.questions) {
-        selectedAssessment.questions.forEach((question, questionIndex) => {
-          const userAnswer = answers[questionIndex];
-          const optionIndex = question.options.findIndex(option => option === userAnswer);
-          formattedAnswers[question.id.toString()] = optionIndex;
-        });
+      if (!userId || !selectedClassId || !selectedAssessment) {
+        throw new Error('User ID, Class ID, or Assessment missing');
       }
 
+      const formattedAnswers: Record<string, number> = {};
+      selectedAssessment.questions.forEach((question, questionIndex) => {
+        const userAnswer = answers[questionIndex];
+        const optionIndex = question.options.findIndex(option => option === userAnswer);
+        formattedAnswers[question.id.toString()] = optionIndex;
+      });
+
       const response = await axios.post('/api/user-progress/submit-assessment', {
-        userId: parseInt(userId),
-        classId: parseInt(selectedClassId),
+        userId, // Send as string
+        classId: selectedClassId, // Send as string
         answers: formattedAnswers,
         score,
       });
@@ -378,7 +389,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       if (response.data.success) {
         const { score, isPassed, canRetake, attemptCount, message, correctAnswers } = response.data;
         if (isPassed) {
-          await handleAssessmentComplete(selectedAssessment!.id.toString());
+          await handleAssessmentComplete(selectedAssessment.id.toString());
         }
         setAssessmentResults({
           score,
@@ -387,15 +398,15 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
           attemptCount,
           message,
           answers: formattedAnswers,
-          totalQuestions: selectedAssessment?.questions.length || 0,
+          totalQuestions: selectedAssessment.questions.length,
           correctAnswers: correctAnswers || 0,
         });
         initializeProgress({
-          assessmentCompleted: { [selectedAssessment!.id.toString()]: isPassed },
+          assessmentCompleted: { [selectedAssessment.id.toString()]: isPassed },
         });
         setAssessmentAttempts(prev => ({
           ...prev,
-          [selectedAssessment!.id.toString()]: true,
+          [selectedAssessment.id.toString()]: true,
         }));
       } else {
         throw new Error(response.data.error || 'Submission failed');
@@ -410,6 +421,9 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   const handleViewResults = async (assessment: AssessmentData) => {
     setIsLoadingResults(true);
     try {
+      if (!userId) {
+        throw new Error('User ID missing');
+      }
       const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
       if (response.data.success) {
         setAssessmentResults(response.data.data);
@@ -439,9 +453,12 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   const handleResourceAccess = async (resource: ResourceData) => {
     try {
+      if (!userId || !selectedClassId) {
+        throw new Error('User ID or Class ID missing');
+      }
       await axios.post('/api/user-progress/resource-access', {
-        userId: parseInt(userId),
-        classId: parseInt(selectedClassId),
+        userId, // Send as string
+        classId: selectedClassId, // Send as string
         resourceId: resource.id,
         accessedAt: new Date(),
       });
@@ -455,29 +472,32 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleEssayUpload = async (resource: ResourceData) => {
-  if (!essayFile) {
-    showNotification('error', 'Please select a file to upload.');
-    return;
-  }
-  try {
-    const formData = new FormData();
-    formData.append('file', essayFile);
-    formData.append('userId', userId);
-    formData.append('classId', selectedClassId);
-    formData.append('content', essayFile.name);
-
-    const response = await axios.post('/api/user-progress/submit-essay', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    if (response.data.success) {
-      showNotification('success', 'Essay submitted successfully!');
-      setEssayFile(null);
-    } else {
-      throw new Error(response.data.error || 'Failed to submit essay');
+    if (!essayFile) {
+      showNotification('error', 'Please select a file to upload.');
+      return;
     }
-  } catch (error: any) {
-    handleError(error.response?.data?.error || 'Failed to upload essay', error);
-  }
+    try {
+      if (!userId || !selectedClassId) {
+        throw new Error('User ID or Class ID missing');
+      }
+      const formData = new FormData();
+      formData.append('file', essayFile);
+      formData.append('userId', userId);
+      formData.append('classId', selectedClassId);
+      formData.append('content', essayFile.name);
+
+      const response = await axios.post('/api/user-progress/submit-essay', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (response.data.success) {
+        showNotification('success', 'Essay submitted successfully!');
+        setEssayFile(null);
+      } else {
+        throw new Error(response.data.error || 'Failed to submit essay');
+      }
+    } catch (error: any) {
+      handleError(error.response?.data?.error || 'Failed to upload essay', error);
+    }
   };
 
   const handleVideoSelect = (video: VideoData) => {
@@ -530,7 +550,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     );
   }
 
-  const isAssessmentLocked = !videoWatched[selectedClassId];
+  const isAssessmentLocked = !selectedClassId || !videoWatched[selectedClassId];
 
   return (
     <div className="space-y-6">
@@ -645,7 +665,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                 {selectedVideo?.title || classData.title}
               </h3>
               <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{classData.description}</p>
-              {videoWatched[selectedClassId] && (
+              {selectedClassId && videoWatched[selectedClassId] && (
                 <div className="mt-3 flex items-center gap-2 text-success-500 dark:text-success-400">
                   <div className="w-2 h-2 bg-success-500 dark:bg-success-400 rounded-full"></div>
                   <span className="text-sm desktop_paragraph tablet_paragraph mobile_paragraph">Video completed</span>

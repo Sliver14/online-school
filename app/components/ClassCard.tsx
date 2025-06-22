@@ -4,6 +4,39 @@ import React from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Lock } from 'lucide-react';
 
+interface Question {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+}
+
+interface AssessmentData {
+  id: number;
+  title: string;
+  questions: Question[];
+}
+
+interface VideoData {
+  id: number;
+  title: string;
+  videoUrl: string;
+  classNumber: number;
+  videoPosterUrl?: string;
+  order: number;
+}
+
+interface ResourceData {
+  id: number;
+  title: string;
+  type: 'READ' | 'ESSAY' | 'VIDEO' | 'LINK' | 'ASSIGNMENT' | 'NOTE';
+  content?: string;
+  resourceUrl?: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface ClassCardProps {
   classItem: {
     id: number;
@@ -13,7 +46,9 @@ interface ClassCardProps {
     duration: string;
     videoUrl: string;
     posterUrl: string;
-    assessment: any[];
+    videos: VideoData[];
+    assessments: AssessmentData[];
+    resources: ResourceData[];
   };
   index: number;
   isLocked: { locked: boolean; reason: string };
@@ -51,7 +86,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked }) => 
       <div className={`h-16 bg-gradient-to-r ${getGradientColor(index)} flex items-center justify-center text-white dark:text-dark-text-primary text-lg font-semibold relative`}>
         <span className="text-center px-4 text-sm">{classItem.classNumber || `Class ${index + 1}`}</span>
         {isLocked.locked && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-error-500 dark:bg-error-700 text-white text-xs p-2  rounded-full">
+          <div className="absolute top-3 right-3 flex items-center gap-1 bg-error-500 dark:bg-error-700 text-white text-xs p-2 rounded-full">
             <Lock className="w-3 h-3" />
             {/* Locked */}
           </div>
@@ -73,6 +108,13 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked }) => 
           <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
             <span>⏱️</span>
             <span>{classItem.duration}</span>
+          </div>
+        )}
+
+        {/* Assessments count */}
+        {classItem.assessments.length > 0 && (
+          <div className="mt-2 text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+            Assessments: {classItem.assessments.length}
           </div>
         )}
 

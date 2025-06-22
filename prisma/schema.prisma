@@ -10,15 +10,15 @@ datasource db {
 model User {
   id                    Int                    @id @default(autoincrement())
   email                 String                 @unique
-  firstName             String?
-  lastName              String?
-  phoneNumber           String?
-  zone                  String?
+  firstName             String
+  lastName              String
+  phoneNumber           String
+  zone                  String
   church                String?
-  country               String?
-  city                  String?
-  kcUsername            String?
-  password              String?
+  country               String
+  city                  String
+  kcUsername            String
+  password              String
   verificationToken     String?                @unique
   verified              Boolean                @default(false)
   approved              Boolean                @default(false)
@@ -180,6 +180,7 @@ model ClassEssaySubmission {
   class       Class    @relation(fields: [classId], references: [id])
   classId     Int
   content     String
+  filePath    String?  // Added for file storage
   submittedAt DateTime @default(now())
   reviewed    Boolean  @default(false)
   remarks     String?

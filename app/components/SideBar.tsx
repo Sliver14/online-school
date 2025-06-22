@@ -1,15 +1,29 @@
 'use client';
 
 import React from 'react';
-import { navItems } from '@/lib/constants';
 import { useAppContext } from '../context/AppContext';
 
-const Sidebar: React.FC = () => {
-  const { activeTab, sidebarOpen, handleNavClick } = useAppContext();
+interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+}
 
+const navItems: NavItem[] = [
+  { id: 'classes', label: 'Classes', icon: '📚' },
+  { id: 'examinations', label: 'Examinations', icon: '📝' },
+];
+
+interface SideBarProps {
+  handleNavClick: (tab: string) => void;
+  sidebarOpen: boolean;
+  activeTab: string;
+}
+
+const Sidebar: React.FC<SideBarProps> = ({ handleNavClick, sidebarOpen, activeTab }) => {
   return (
     <aside 
-      className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out lg:translate-x-0 bg-neutral-50 dark:bg-dark-bg-tertiary ${
+      className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out lg:translate-x-0 bg-neutral-50 dark:bg-dark-bg-tertiary border-r border-neutral-200 dark:border-dark-border-primary ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`} 
     >
