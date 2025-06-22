@@ -87,23 +87,21 @@ const OnlineSchool = () => {
     if (userLoading) return;
     if (!userId) {
       toast.info('Please sign in to access the dashboard');
-      router.replace('/welcome'); // Use replace to avoid history stack issues
+      router.push('/welcome');
     }
     if (userError) {
       toast.error(userError);
-      router.replace('/welcome');
     }
   }, [userId, userLoading, userError, router]);
 
   // Load selectedClassId from sessionStorage
   useEffect(() => {
-    if (userLoading || !userId) return;
     const storedClassId = sessionStorage.getItem('selectedClassId');
     if (storedClassId && !selectedClassId) {
       setSelectedClassId(storedClassId);
       setActiveTab(''); // Ensure no tab is active in ClassView
     }
-  }, [setSelectedClassId, setActiveTab, userLoading, userId]);
+  }, [setSelectedClassId, setActiveTab]);
 
   useEffect(() => {
     renderCount.current += 1;
@@ -111,25 +109,11 @@ const OnlineSchool = () => {
   });
 
   useEffect(() => {
-    if (userLoading || !userId) return;
     if (classes.length >= 0) {
       console.log('Classes loaded, setting loading to false');
       setLoading(false);
     }
-  }, [classes, userLoading, userId]);
-
-  if (userLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 border-primary-400 dark:border-primary-400"></div>
-          <p className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userId) return null;
+  }, [classes]);
 
   const totalClasses = classes.length;
   const completedClasses = classes.reduce((count, classItem) => {
@@ -234,7 +218,7 @@ const OnlineSchool = () => {
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (userLoading || loading) {
       return (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 border-primary-400 dark:border-primary-400"></div>
@@ -242,6 +226,8 @@ const OnlineSchool = () => {
         </div>
       );
     }
+
+    if (!userId) return null;
 
     if (selectedClassId) {
       return (
