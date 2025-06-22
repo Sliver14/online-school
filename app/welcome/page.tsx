@@ -5,12 +5,11 @@ import Image from 'next/image';
 import { ArrowRight, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../context/UserContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster, toast } from 'react-hot-toast';
 
 const Welcome = () => {
   const router = useRouter();
-  const { userId, loading: userLoading, error: userError } = useUser();
+  const { userId, userLoading, userError } = useUser();
   const [isGetStartedHovered, setIsGetStartedHovered] = useState(false);
   const [isLoginHovered, setIsLoginHovered] = useState(false);
   const [clickedButton, setClickedButton] = useState<string | null>(null);
@@ -19,7 +18,7 @@ const Welcome = () => {
     if (userLoading) return;
     if (userId) {
       toast.success('Already signed in!');
-      router.push('/');
+      router.replace('/');
     }
     if (userError) {
       toast.error(userError);
@@ -150,7 +149,7 @@ const Welcome = () => {
           </button>
         </div>
       </div>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <Toaster position="top-right" />
     </div>
   );
 };

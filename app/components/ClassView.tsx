@@ -69,7 +69,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     setSelectedClassId,
     initializeProgress,
   } = useAppContext();
-  const { userId } = useUser();
+  const { userId, userLoading, userError } = useUser();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -103,7 +103,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const loadProgressData = async () => {
-    if (!selectedClassId || !userId || !classData) {
+    if (!selectedClassId || userLoading || !userId || !classData) {
       setProgressLoading(false);
       return;
     }
@@ -111,7 +111,6 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     try {
       setProgressLoading(true);
 
-      // Fetch video progress
       const videoProgressResponse = await axios.get(`/api/user-progress/video-watched?userId=${userId}&classId=${selectedClassId}`);
       if (videoProgressResponse.data.success) {
         const videoProgress = videoProgressResponse.data.data;
@@ -121,7 +120,6 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         });
       }
 
-      // Fetch assessment progress
       if (classData.assessments && classData.assessments.length > 0) {
         const assessmentProgress: { [assessmentId: string]: boolean } = {};
         const assessmentAttempts: { [assessmentId: string]: boolean } = {};
@@ -160,7 +158,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   useEffect(() => {
     const fetchClassData = async () => {
-      if (!selectedClassId || !userId) return;
+      if (!selectedClassId || userLoading || !userId) return;
 
       setLoading(true);
       setError(null);
@@ -184,18 +182,17 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     };
 
     fetchClassData();
-  }, [selectedClassId, userId]);
+  }, [selectedClassId, userId, userLoading]);
 
   useEffect(() => {
     loadProgressData();
-  }, [classData, selectedClassId, userId]);
+  }, [classData, selectedClassId, userId, userLoading]);
 
-  // Check for timer expiration and auto-complete assessments
   useEffect(() => {
     if (!classData || !classData.assessments.length) return;
 
     const checkTimers = async () => {
-      if (!userId || !selectedClassId) {
+      if (!userId || userLoading || !selectedClassId) {
         showNotification('error', 'User ID or Class ID missing');
         return;
       }
@@ -207,14 +204,13 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
           const now = new Date();
           const expiresAt = new Date(timer.timerExpiresAt);
           if (now >= expiresAt) {
-            // Auto-complete assessments that haven't been attempted
             for (const assessment of classData.assessments) {
               const assessmentId = assessment.id.toString();
               if (!assessmentAttempts[assessmentId] && !assessmentCompleted[assessmentId]) {
                 try {
                   const response = await axios.post('/api/user-progress/submit-assessment', {
-                    userId, // Send as string
-                    classId: selectedClassId, // Send as string
+                    userId,
+                    classId: selectedClassId,
                     answers: {},
                     score: 0,
                     isPassed: false,
@@ -238,7 +234,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
     const interval = setInterval(checkTimers, 1000);
     return () => clearInterval(interval);
-  }, [classData, selectedClassId, userId, assessmentAttempts, assessmentCompleted]);
+  }, [classData, selectedClassId, userId, userLoading, assessmentAttempts, assessmentCompleted]);
 
   const togglePlayPause = () => {
     if (!videoRef.current) return;
@@ -268,28 +264,19 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   const handleVideoEnd = async () => {
     setIsPlaying(false);
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     try {
-      if (!userId || !selectedClassId) {
-        throw new Error('User ID or Class ID missing');
+      if (!selectedClassId || !selectedVideo) {
+        throw new Error('Class ID or selected video missing');
       }
 
-      await handleVideoComplete(selectedClassId);
+      await handleVideoComplete(selectedClassId, selectedVideo.id);
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours later
+      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
 
-      // Mark current class video as watched
-      const currentResponse = await axios.post('/api/user-progress/video-watched', {
-        userId, // Send as string
-        classId: selectedClassId, // Send as string
-        videoId: selectedVideo?.id,
-        watchedAt: now.toISOString(),
-        timerActive: false,
-      });
-      if (!currentResponse.data.success) {
-        throw new Error(currentResponse.data.error || 'Failed to save current video progress');
-      }
-
-      // Fetch all classes to find the next class
       const classResponse = await axios.get('/api/classes');
       if (!classResponse.data.success) {
         throw new Error(classResponse.data.error || 'Failed to fetch classes');
@@ -299,10 +286,9 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       const nextClass = classes[currentIndex + 1];
 
       if (nextClass) {
-        // Set timer for the next class using class-timers endpoint
         const timerResponse = await axios.post('/api/user-progress/class-timers', {
-          userId, // Send as string
-          classId: nextClass.id.toString(), // Convert to string
+          userId,
+          classId: nextClass.id.toString(),
           timerExpiresAt: expiresAt.toISOString(),
           timerActive: true,
         });
@@ -310,12 +296,11 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
           initializeProgress({
             videoWatched: { [selectedClassId]: true },
           });
-          showNotification('success', `Video completed! Next class (${nextClass.title}) is locked for 24 hours.`);
+          showNotification('success', `Video completed! Next class (${nextClass.title}) unlocks in 5 Mins.`);
         } else {
           throw new Error(timerResponse.data.error || 'Failed to set timer for next class');
         }
       } else {
-        // No next class, mark current as completed
         initializeProgress({
           videoWatched: { [selectedClassId]: true },
         });
@@ -353,6 +338,10 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleAssessmentStart = async (assessment: AssessmentData) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     if (!selectedClassId || !videoWatched[selectedClassId]) {
       showNotification('error', 'Please watch the class video before taking the assessment.');
       return;
@@ -367,9 +356,13 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleAssessmentCompleteLocal = async (score: number, answers: string[]) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     try {
-      if (!userId || !selectedClassId || !selectedAssessment) {
-        throw new Error('User ID, Class ID, or Assessment missing');
+      if (!selectedClassId || !selectedAssessment) {
+        throw new Error('Class ID or Assessment missing');
       }
 
       const formattedAnswers: Record<string, number> = {};
@@ -380,8 +373,8 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       });
 
       const response = await axios.post('/api/user-progress/submit-assessment', {
-        userId, // Send as string
-        classId: selectedClassId, // Send as string
+        userId,
+        classId: selectedClassId,
         answers: formattedAnswers,
         score,
       });
@@ -404,10 +397,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         initializeProgress({
           assessmentCompleted: { [selectedAssessment.id.toString()]: isPassed },
         });
-        setAssessmentAttempts(prev => ({
-          ...prev,
-          [selectedAssessment.id.toString()]: true,
-        }));
+        setAssessmentAttempts(prev => ({ ...prev, [selectedAssessment.id.toString()]: true }));
       } else {
         throw new Error(response.data.error || 'Submission failed');
       }
@@ -419,11 +409,12 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleViewResults = async (assessment: AssessmentData) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     setIsLoadingResults(true);
     try {
-      if (!userId) {
-        throw new Error('User ID missing');
-      }
       const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
       if (response.data.success) {
         setAssessmentResults(response.data.data);
@@ -444,6 +435,10 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleAssessmentButtonClick = (assessment: AssessmentData) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     if (assessmentCompleted[assessment.id.toString()]) {
       handleViewResults(assessment);
     } else {
@@ -452,13 +447,17 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleResourceAccess = async (resource: ResourceData) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     try {
-      if (!userId || !selectedClassId) {
-        throw new Error('User ID or Class ID missing');
+      if (!selectedClassId) {
+        throw new Error('Class ID missing');
       }
       await axios.post('/api/user-progress/resource-access', {
-        userId, // Send as string
-        classId: selectedClassId, // Send as string
+        userId,
+        classId: selectedClassId,
         resourceId: resource.id,
         accessedAt: new Date(),
       });
@@ -472,13 +471,17 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
   };
 
   const handleEssayUpload = async (resource: ResourceData) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
     if (!essayFile) {
       showNotification('error', 'Please select a file to upload.');
       return;
     }
     try {
-      if (!userId || !selectedClassId) {
-        throw new Error('User ID or Class ID missing');
+      if (!selectedClassId) {
+        throw new Error('Class ID missing');
       }
       const formData = new FormData();
       formData.append('file', essayFile);
@@ -507,10 +510,19 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     setDuration(0);
   };
 
-  if (error) {
+  if (userLoading) {
     return (
       <div className="text-center py-12">
-        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{error}</p>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-400 dark:border-primary-400 mx-auto mb-4"></div>
+        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Verifying your session...</p>
+      </div>
+    );
+  }
+
+  if (userError || error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{userError || error || 'An error occurred'}</p>
         <button
           onClick={() => {
             onBack();

@@ -9,8 +9,7 @@ import ClassView from './components/ClassView';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { useUser } from './context/UserContext';
 import ThemeToggle from './components/ThemeToggle';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster, toast } from 'react-hot-toast';
 
 interface Question {
   id: number;
@@ -76,7 +75,7 @@ const OnlineSchool = () => {
     videoWatched,
     assessmentCompleted,
   } = useAppContext();
-  const [loading, setLoading] = useState(true);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const renderCount = useRef(0);
   const { userId, userDetails, userLoading, userError } = useUser();
   const router = useRouter();
@@ -86,8 +85,8 @@ const OnlineSchool = () => {
     console.log('Home Page - User:', { userId, userLoading, userError, path: window.location.pathname });
     if (userLoading) return;
     if (!userId) {
-      toast.info('Please sign in to access the dashboard');
-      router.push('/welcome');
+      toast('Please sign in to access the dashboard', { icon: 'ℹ️' });
+      router.replace('/welcome');
     }
     if (userError) {
       toast.error(userError);
@@ -111,7 +110,7 @@ const OnlineSchool = () => {
   useEffect(() => {
     if (classes.length >= 0) {
       console.log('Classes loaded, setting loading to false');
-      setLoading(false);
+      setLoadingClasses(false);
     }
   }, [classes]);
 
@@ -218,11 +217,11 @@ const OnlineSchool = () => {
   };
 
   const renderContent = () => {
-    if (userLoading || loading) {
+    if (userLoading || loadingClasses) {
       return (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 border-primary-400 dark:border-primary-400"></div>
-          <p className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted">Loading...</p>
+          <p className="desktop_paragraph tablet_h2 mobile_h2 text-neutral-500 dark:text-dark-text-muted">Loading...</p>
         </div>
       );
     }
@@ -247,7 +246,7 @@ const OnlineSchool = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-dark-bg-primary">
-      <ToastContainer position="top-right" autoClose={3000} />
+      <Toaster position="top-right" />
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"

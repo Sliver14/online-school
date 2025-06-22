@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
     try {
         const { userId, classId, timerExpiresAt, timerActive } = await request.json();
+        console.log('Received POST data:', { userId, classId, timerExpiresAt, timerActive }); // Debug log
 
         if (!userId || !classId) {
             return NextResponse.json(
@@ -14,9 +15,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Convert to Int
+        const parsedUserId = parseInt(userId);
+        const parsedClassId = parseInt(classId);
+        if (isNaN(parsedUserId) || isNaN(parsedClassId)) {
+            return NextResponse.json(
+                { success: false, error: 'userId and classId must be valid integers' },
+                { status: 400 }
+            );
+        }
+
         // Verify the class exists
         const classData = await prisma.class.findUnique({
-            where: { id: classId },
+            where: { id: parsedClassId },
             select: { id: true, title: true }
         });
 
@@ -29,7 +40,7 @@ export async function POST(request: NextRequest) {
 
         // Check if timer already exists
         const existingTimer = await prisma.classTimers.findUnique({
-            where: { userId_classId: { userId, classId } }
+            where: { userId_classId: { userId: parsedUserId, classId: parsedClassId } }
         });
 
         let timerData;
@@ -38,8 +49,8 @@ export async function POST(request: NextRequest) {
             // Create new timer entry
             timerData = await prisma.classTimers.create({
                 data: {
-                    userId,
-                    classId,
+                    userId: parsedUserId,
+                    classId: parsedClassId,
                     timerExpiresAt: timerExpiresAt ? new Date(timerExpiresAt) : null,
                     timerActive: timerActive || false
                 }
@@ -56,7 +67,7 @@ export async function POST(request: NextRequest) {
 
             if (Object.keys(updateData).length > 0) {
                 timerData = await prisma.classTimers.update({
-                    where: { userId_classId: { userId, classId } },
+                    where: { userId_classId: { userId: parsedUserId, classId: parsedClassId } },
                     data: updateData
                 });
             } else {
@@ -100,10 +111,25 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        let whereClause: any = { userId: parseInt(userId) };
+        const parsedUserId = parseInt(userId);
+        if (isNaN(parsedUserId)) {
+            return NextResponse.json(
+                { success: false, error: 'userId must be a valid integer' },
+                { status: 400 }
+            );
+        }
+
+        let whereClause: any = { userId: parsedUserId };
 
         if (classId) {
-            whereClause.classId = parseInt(classId);
+            const parsedClassId = parseInt(classId);
+            if (isNaN(parsedClassId)) {
+                return NextResponse.json(
+                    { success: false, error: 'classId must be a valid integer' },
+                    { status: 400 }
+                );
+            }
+            whereClause.classId = parsedClassId;
         }
 
         const timers = await prisma.classTimers.findMany({

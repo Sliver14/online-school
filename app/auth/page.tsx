@@ -23,10 +23,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useUser } from '../context/UserContext';
 import { zones } from '../../utils/zones';
 import { countries } from '../../utils/countries';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster, toast } from 'react-hot-toast';
 
-// Define interfaces
 interface FormData {
   name: string;
   email: string;
@@ -46,10 +44,10 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-const WelcomeScreenForm: React.FC = () => {
+const Authpage: React.FC = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { userId, loading: userLoading, error: userError } = useUser();
+  const { userId, userLoading, userError } = useUser();
   const [isLogin, setIsLogin] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -85,7 +83,7 @@ const WelcomeScreenForm: React.FC = () => {
     if (userLoading) return;
     if (userId) {
       toast.success('Already signed in!');
-      router.push('/');
+      router.replace('/');
     }
     if (userError) {
       toast.error(userError);
@@ -230,11 +228,7 @@ const WelcomeScreenForm: React.FC = () => {
         password: formData.password,
       });
       toast.success('Signed in successfully!');
-    //   window.location.href = '/';
-      router.replace("/")
-      window.location.reload();
-
-
+      router.replace('/');
     } catch (error) {
       console.error('Sign-in error:', error);
       let errorMessage = 'Invalid email or password';
@@ -569,6 +563,7 @@ const WelcomeScreenForm: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-neutral-50 relative overflow-hidden">
+      <Toaster position="top-right" />
       {/* Static Background Objects */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-36 left-10 w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-24 lg:h-24 rounded-full bg-secondary-400/10 opacity-80"></div>
@@ -870,7 +865,6 @@ const WelcomeScreenForm: React.FC = () => {
           </p>
         </div>
       </div>
-      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 };
@@ -884,7 +878,7 @@ export default function Page() {
         </div>
       }
     >
-      <WelcomeScreenForm />
+      <Authpage />
     </Suspense>
   );
 }
