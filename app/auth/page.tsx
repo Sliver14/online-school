@@ -229,6 +229,8 @@ const Authpage: React.FC = () => {
       });
       toast.success('Signed in successfully!');
       router.replace('/');
+      window.location.reload();
+
     } catch (error) {
       console.error('Sign-in error:', error);
       let errorMessage = 'Invalid email or password';
