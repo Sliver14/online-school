@@ -21,7 +21,8 @@ const Welcome = () => {
       router.replace('/');
     }
     if (userError) {
-      toast.error(userError);
+      // toast.error(userError);
+      console.log(userError)
     }
   }, [userId, userLoading, userError, router]);
 

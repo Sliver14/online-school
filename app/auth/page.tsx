@@ -86,7 +86,8 @@ const Authpage: React.FC = () => {
       router.replace('/');
     }
     if (userError) {
-      toast.error(userError);
+      // toast.error(userError);
+      console.log(userError)
     }
     const mode = searchParams.get('mode');
     if (mode === 'signup') {
@@ -578,9 +579,15 @@ const Authpage: React.FC = () => {
       <button
         type="button"
         onClick={() => router.push('/')}
-        className="absolute p-2 md:p-4 bg-gray-200 rounded-full top-4 left-4 flex items-center gap-2 text-primary-400 hover:text-secondary-500 text-mobile_paragraph md:text-tablet_paragraph lg:text-desktop_paragraph transition-colors"
+        className="fixed top-4 left-4 z-50 p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-neutral-200 flex items-center justify-center text-primary-400 hover:text-secondary-500 hover:bg-white/90 transition-all duration-300 touch-manipulation"
+        style={{ 
+          minWidth: '48px', 
+          minHeight: '48px',
+          WebkitTapHighlightColor: 'transparent'
+        }}
+        aria-label="Back to Home"
       >
-        <ArrowLeft size={30} />
+        <ArrowLeft size={24} className="flex-shrink-0" />
       </button>
 
       {/* Forgot Password Modal */}
