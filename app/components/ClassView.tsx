@@ -264,18 +264,23 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
   const handleVideoEnd = async () => {
     setIsPlaying(false);
-    if (userLoading || !userId) {
-      handleError('User not authenticated', new Error('User authentication pending'));
+    if (userLoading || !userId || !selectedClassId || !selectedVideo) {
+      handleError('User not authenticated or video/data missing', new Error('Authentication or data pending'));
       return;
     }
     try {
-      if (!selectedClassId || !selectedVideo) {
-        throw new Error('Class ID or selected video missing');
+      const response = await handleVideoComplete(selectedClassId, selectedVideo.id);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update video progress');
       }
 
-      await handleVideoComplete(selectedClassId, selectedVideo.id);
+      if (response.message === 'Video already completed') {
+        showNotification('info', `Video "${selectedVideo.title}" is already completed!`);
+        return; // Exit early to skip timer logic
+      }
+
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
 
       const classResponse = await axios.get('/api/classes');
       if (!classResponse.data.success) {
@@ -288,7 +293,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       if (nextClass) {
         const timerResponse = await axios.post('/api/user-progress/class-timers', {
           userId,
-          classId: nextClass.id.toString(),
+          classId: nextClass.id,
           timerExpiresAt: expiresAt.toISOString(),
           timerActive: true,
         });
@@ -296,7 +301,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
           initializeProgress({
             videoWatched: { [selectedClassId]: true },
           });
-          showNotification('success', `Video completed! Next class (${nextClass.title}) unlocks in 5 Mins.`);
+          showNotification('success', `Video completed! Next class (${nextClass.title}) unlocks in 5 minutes.`);
         } else {
           throw new Error(timerResponse.data.error || 'Failed to set timer for next class');
         }
@@ -337,76 +342,24 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     setIsFullscreen(!isFullscreen);
   };
 
-  const handleAssessmentStart = async (assessment: AssessmentData) => {
-    if (userLoading || !userId) {
-      handleError('User not authenticated', new Error('User authentication pending'));
-      return;
-    }
-    if (!selectedClassId || !videoWatched[selectedClassId]) {
-      showNotification('error', 'Please watch the class video before taking the assessment.');
-      return;
-    }
-    if (!assessment || !assessment.questions || assessment.questions.length === 0) {
-      handleError('Assessment has no questions available');
-      return;
-    }
-    setSelectedAssessment(assessment);
-    setAssessmentResults(null);
-    setIsAssessmentModalOpen(true);
-  };
-
-  const handleAssessmentCompleteLocal = async (score: number, answers: string[]) => {
-    if (userLoading || !userId) {
-      handleError('User not authenticated', new Error('User authentication pending'));
-      return;
-    }
-    try {
-      if (!selectedClassId || !selectedAssessment) {
-        throw new Error('Class ID or Assessment missing');
-      }
-
-      const formattedAnswers: Record<string, number> = {};
-      selectedAssessment.questions.forEach((question, questionIndex) => {
-        const userAnswer = answers[questionIndex];
-        const optionIndex = question.options.findIndex(option => option === userAnswer);
-        formattedAnswers[question.id.toString()] = optionIndex;
-      });
-
-      const response = await axios.post('/api/user-progress/submit-assessment', {
-        userId,
-        classId: selectedClassId,
-        answers: formattedAnswers,
-        score,
-      });
-
-      if (response.data.success) {
-        const { score, isPassed, canRetake, attemptCount, message, correctAnswers } = response.data;
-        if (isPassed) {
-          await handleAssessmentComplete(selectedAssessment.id.toString());
-        }
-        setAssessmentResults({
-          score,
-          isPassed,
-          canRetake,
-          attemptCount,
-          message,
-          answers: formattedAnswers,
-          totalQuestions: selectedAssessment.questions.length,
-          correctAnswers: correctAnswers || 0,
-        });
-        initializeProgress({
-          assessmentCompleted: { [selectedAssessment.id.toString()]: isPassed },
-        });
-        setAssessmentAttempts(prev => ({ ...prev, [selectedAssessment.id.toString()]: true }));
-      } else {
-        throw new Error(response.data.error || 'Submission failed');
-      }
-    } catch (error) {
-      handleError('There was an error submitting your assessment. Please try again.', error);
-      setIsAssessmentModalOpen(false);
-      setSelectedAssessment(null);
-    }
-  };
+const handleAssessmentStart = async (assessment: AssessmentData) => {
+  console.log('Starting assessment:', assessment); // Debug
+  if (userLoading || !userId) {
+    handleError('User not authenticated', new Error('User authentication pending'));
+    return;
+  }
+  if (!selectedClassId || !videoWatched[selectedClassId]) {
+    showNotification('error', 'Please watch the class video before taking the assessment.');
+    return;
+  }
+  if (!assessment || !assessment.questions || assessment.questions.length === 0) {
+    handleError('Assessment has no questions available');
+    return;
+  }
+  setSelectedAssessment(assessment);
+  setAssessmentResults(null);
+  setIsAssessmentModalOpen(true);
+};
 
   const handleViewResults = async (assessment: AssessmentData) => {
     if (userLoading || !userId) {
@@ -417,7 +370,9 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     try {
       const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
       if (response.data.success) {
-        setAssessmentResults(response.data.data);
+        const resultData = response.data.data;
+        console.log('API response:', response.data); // Debug
+        setAssessmentResults(resultData); // Use raw response, no need to map
         setSelectedAssessment(assessment);
         setIsAssessmentModalOpen(true);
       } else {
@@ -908,19 +863,24 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         )}
       </div>
 
-      {selectedAssessment && (
-        <AssessmentModal
-          isOpen={isAssessmentModalOpen}
-          onClose={() => {
-            setIsAssessmentModalOpen(false);
-            setSelectedAssessment(null);
-          }}
-          assessment={selectedAssessment}
-          onComplete={handleAssessmentCompleteLocal}
-          assessmentResults={assessmentResults}
-          onRetake={handleRetakeAssessment}
-        />
-      )}
+    {selectedAssessment && (
+      <AssessmentModal
+        isOpen={isAssessmentModalOpen}
+        onClose={() => {
+          setIsAssessmentModalOpen(false);
+          setSelectedAssessment(null);
+        }}
+        assessment={selectedAssessment}
+        onComplete={async (answers: Record<string, number>) => {
+          if (selectedAssessment) {
+            await handleAssessmentComplete(selectedAssessment.id.toString(), answers);
+            await handleViewResults(selectedAssessment); // Refresh results
+          }
+        }}
+        assessmentResults={assessmentResults}
+        onRetake={handleRetakeAssessment}
+      />
+    )}
     </div>
   );
 };

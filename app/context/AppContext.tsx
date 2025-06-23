@@ -120,71 +120,80 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  const handleVideoComplete = useCallback(async (classId: string, videoId?: number) => {
+    const handleVideoComplete = useCallback(async (classId: string, videoId?: number) => {
     if (userLoading) {
-      console.log('Waiting for user authentication...');
-      toast.info('Please wait while we verify your session');
-      return;
+        console.log('Waiting for user authentication...');
+        toast.info('Please wait while we verify your session');
+        return { success: false, error: 'User authentication pending' }; // Return a fallback response
     }
     if (userError || !userId) {
-      console.error('User error or not authenticated:', userError);
-      toast.error(userError || 'Please sign in to mark video as watched');
-      return;
+        console.error('User error or not authenticated:', userError);
+        toast.error(userError || 'Please sign in to mark video as watched');
+        return { success: false, error: 'User not authenticated' }; // Return a fallback response
     }
 
     try {
-      const response = await axios.post('/api/user-progress/video-watched', {
-        userId: parseInt(userId, 10), // Convert string userId to number
+        const response = await axios.post('/api/user-progress/video-watched', {
+        userId: parseInt(userId, 10),
         classId: parseInt(classId, 10),
         videoId,
         watchedAt: new Date().toISOString(),
-      });
-      if (response.data.success) {
+        });
+        if (response.data.success) {
         setVideoWatched((prev) => ({ ...prev, [classId]: true }));
         console.log(`Video marked as watched for class ${classId}, video ${videoId}`);
         toast.success('Video progress saved');
-      } else {
+        } else {
         console.error('Failed to mark video as watched:', response.data.error);
         toast.error('Failed to save video progress');
-      }
+        }
+        return response.data; // Return the API response
     } catch (err) {
-      console.error('Error marking video as watched:', err);
-      toast.error('Error saving video progress');
+        console.error('Error marking video as watched:', err);
+        toast.error('Error saving video progress');
+        return { success: false, error: 'Error saving video progress' }; // Return a fallback response on error
     }
-  }, [userId, userLoading, userError]);
+    }, [userId, userLoading, userError]);
 
-  const handleAssessmentComplete = useCallback(async (assessmentId: string) => {
-    if (userLoading) {
-      console.log('Waiting for user authentication...');
-      toast.info('Please wait while we verify your session');
-      return;
-    }
-    if (userError || !userId) {
-      console.error('User error or not authenticated:', userError);
-      toast.error(userError || 'Please sign in to mark assessment as completed');
-      return;
-    }
+    const handleAssessmentComplete = useCallback(
+    async (assessmentId: string, answers: Record<string, number>) => {
+        if (userLoading) {
+        console.log('Waiting for user authentication...');
+        toast.info('Please wait while we verify your session');
+        return;
+        }
+        if (userError || !userId) {
+        console.error('User error or not authenticated:', userError);
+        toast.error(userError || 'Please sign in to mark assessment as completed');
+        return;
+        }
+        if (!selectedClassId) {
+        console.error('No class selected');
+        toast.error('No class selected');
+        return;
+        }
 
-    try {
-      const response = await axios.post('/api/user-progress/assessment-results', {
-        userId: parseInt(userId, 10), // Convert string userId to number
-        assessmentId,
-        isPassed: true,
-        completedAt: new Date().toISOString(),
-      });
-      if (response.data.success) {
-        setAssessmentCompleted((prev) => ({ ...prev, [assessmentId]: true }));
-        console.log(`Assessment marked as completed for ${assessmentId}`);
-        toast.success('Assessment progress saved');
-      } else {
-        console.error('Failed to mark assessment as completed:', response.data.error);
-        toast.error('Failed to save assessment progress');
-      }
-    } catch (err) {
-      console.error('Error marking assessment as completed:', err);
-      toast.error('Error saving assessment progress');
-    }
-  }, [userId, userLoading, userError]);
+        try {
+        const response = await axios.post('/api/user-progress/submit-assessment', {
+            userId: parseInt(userId, 10),
+            classId: parseInt(selectedClassId, 10),
+            answers,
+        });
+        if (response.data.success) {
+            setAssessmentCompleted((prev) => ({ ...prev, [assessmentId]: response.data.isPassed }));
+            console.log(`Assessment marked as completed for ${assessmentId}`);
+            toast.success(response.data.message || 'Assessment progress saved');
+        } else {
+            console.error('Failed to mark assessment as completed:', response.data.error);
+            toast.error(response.data.message || 'Failed to save assessment progress');
+        }
+        } catch (err) {
+        console.error('Error marking assessment as completed:', err);
+        toast.error('Error saving assessment progress');
+        }
+    },
+    [userId, userLoading, userError, selectedClassId]
+    );
 
   return (
     <AppContext.Provider

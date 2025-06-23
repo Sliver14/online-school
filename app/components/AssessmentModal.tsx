@@ -36,7 +36,7 @@ interface AssessmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   assessment: AssessmentData;
-  onComplete: (score: number, answers: string[]) => void;
+  onComplete: (answers: Record<string, number>) => Promise<void>;
   assessmentResults?: any;
   onRetake?: () => void;
 }
@@ -49,96 +49,82 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
   assessmentResults,
   onRetake,
 }) => {
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
   const [mode, setMode] = useState<'taking' | 'results'>('taking');
 
   useEffect(() => {
     if (isOpen && assessment?.questions) {
       if (assessmentResults) {
-        console.log('Initializing results mode:', assessmentResults); // Debug
+        console.log('Initializing results mode:', assessmentResults);
         setMode('results');
-        setScore(assessmentResults.score || 0);
-        setAnswers(Object.values(assessmentResults.answers || {}));
         setIsSubmitted(true);
+        // Initialize answers from results
+        setAnswers(assessmentResults.answers || {});
       } else {
-        console.log('Initializing taking mode'); // Debug
+        console.log('Initializing taking mode');
         setMode('taking');
-        setAnswers(new Array(assessment.questions.length).fill(''));
+        setAnswers({});
         setIsSubmitted(false);
-        setScore(0);
       }
     }
   }, [isOpen, assessment?.questions, assessmentResults]);
 
-  const handleAnswerChange = (questionIndex: number, answer: string) => {
-    console.log('Answer changed:', { questionIndex, answer }); // Debug
-    const newAnswers = [...answers];
-    newAnswers[questionIndex] = answer;
-    setAnswers(newAnswers);
+  const handleAnswerChange = (questionId: number, optionIndex: number) => {
+    console.log('Answer changed:', { questionId, optionIndex });
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId.toString()]: optionIndex,
+    }));
   };
 
-  const calculateScore = () => {
-    let correctAnswers = 0;
-    assessment.questions.forEach((question, index) => {
-      if (answers[index] === question.correctAnswer) {
-        correctAnswers++;
-      }
-    });
-    return Math.round((correctAnswers / assessment.questions.length) * 100);
-  };
-
-  const handleSubmit = () => {
-    console.log('Submitting assessment:', { answers, mode }); // Debug
-    const finalScore = calculateScore();
-    setScore(finalScore);
+  const handleSubmit = async () => {
+    console.log('Submitting assessment:', { answers, mode });
     setIsSubmitted(true);
     setMode('results');
-    const formattedAnswers: Record<string, number> = {};
-    assessment.questions.forEach((question, index) => {
-      const optionIndex = question.options.findIndex(opt => opt === answers[index]);
-      formattedAnswers[question.id.toString()] = optionIndex >= 0 ? optionIndex : -1;
-    });
-    console.log('Calling onComplete:', { finalScore, formattedAnswers, answers }); // Debug
-    onComplete(finalScore, answers);
-    console.log('Post-submit state:', { mode: 'results', score: finalScore, answers }); // Debug
+    try {
+      await onComplete(answers);
+    } catch (error) {
+      console.error('Error submitting assessment:', error);
+      setIsSubmitted(false);
+      setMode('taking');
+    }
   };
 
   const handleClose = () => {
-    console.log('Closing modal, resetting state'); // Debug
+    console.log('Closing modal, resetting state');
     setMode('taking');
-    setAnswers([]);
+    setAnswers({});
     setIsSubmitted(false);
-    setScore(0);
     onClose();
   };
 
   if (!isOpen || !assessment || !assessment.questions || assessment.questions.length === 0) {
-    console.log('Modal not rendered:', { isOpen, assessment }); // Debug
+    console.log('Modal not rendered:', { isOpen, assessment });
     return null;
   }
 
-  const renderResults = (isResultsMode: boolean, resultScore: number, isPassed: boolean) => (
+  const renderResults = () => (
     <div className="text-center py-8">
       <div className="mb-6">
-        {isPassed ? (
+        {assessmentResults?.isPassed ? (
           <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: colors.success }} />
         ) : (
           <AlertCircle className="w-16 h-16 mx-auto mb-4" style={{ color: colors.warning }} />
         )}
         <h3 className="text-2xl font-bold mb-2" style={{ color: colors.text }}>
-          {isPassed ? 'Perfect Score!' : 'Assessment Results'}
+          {assessmentResults?.isPassed ? 'Perfect Score!' : 'Assessment Results'}
         </h3>
         <p className="text-lg mb-4" style={{ color: colors.textMuted }}>
-          Your Score: <span className="font-bold" style={{ color: isPassed ? colors.success : colors.warning }}>
-            {resultScore}%
+          Your Score:{' '}
+          <span className="font-bold" style={{ color: assessmentResults?.isPassed ? colors.success : colors.warning }}>
+            {assessmentResults?.score || 0}%
           </span>
         </p>
         <p className="mb-4" style={{ color: colors.textMuted }}>
-          You answered {Math.round((resultScore / 100) * assessment.questions.length)} out of {assessment.questions.length} questions correctly.
+          You answered {assessmentResults?.correctAnswers || 0} out of {assessmentResults?.totalQuestions || assessment.questions.length} questions correctly.
         </p>
-        {isPassed ? (
+        {assessmentResults?.isPassed ? (
           <p style={{ color: colors.success }}>
             Congratulations! You achieved a perfect score and completed this assessment.
           </p>
@@ -149,37 +135,44 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         )}
       </div>
       <div className="space-y-6 mb-6">
-        {assessment.questions.map((question, index) => (
-          <div
-            key={question.id}
-            className="p-4 rounded-lg border"
-            style={{
-              borderColor: answers[index] === question.correctAnswer ? colors.success : colors.danger,
-              backgroundColor: colors.primary,
-            }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              {answers[index] === question.correctAnswer ? (
-                <CheckCircle className="w-5 h-5" style={{ color: colors.success }} />
-              ) : (
-                <XCircle className="w-5 h-5" style={{ color: colors.danger }} />
-              )}
-              <h4 className="text-lg font-semibold" style={{ color: colors.text }}>
-                {question.question}
-              </h4>
-            </div>
-            <p className="text-sm" style={{ color: colors.textMuted }}>
-              Your Answer: <span style={{ color: answers[index] === question.correctAnswer ? colors.success : colors.danger }}>
-                {answers[index] || 'No answer selected'}
-              </span>
-            </p>
-            {answers[index] !== question.correctAnswer && (
+        {assessment.questions.map((question, index) => {
+          const userAnswerIndex = assessmentResults?.answers?.[question.id.toString()];
+          const userAnswer = userAnswerIndex !== undefined && userAnswerIndex >= 0 ? question.options[userAnswerIndex] : 'No answer selected';
+          const isCorrect = assessmentResults?.detailedResults?.[index]?.isCorrect || false;
+
+          return (
+            <div
+              key={question.id}
+              className="p-4 rounded-lg border"
+              style={{
+                borderColor: isCorrect ? colors.success : colors.danger,
+                backgroundColor: colors.primary,
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {isCorrect ? (
+                  <CheckCircle className="w-5 h-5" style={{ color: colors.success }} />
+                ) : (
+                  <XCircle className="w-5 h-5" style={{ color: colors.danger }} />
+                )}
+                <h4 className="text-lg font-semibold" style={{ color: colors.text }}>
+                  {question.question}
+                </h4>
+              </div>
               <p className="text-sm" style={{ color: colors.textMuted }}>
-                Correct Answer: <span style={{ color: colors.success }}>{question.correctAnswer}</span>
+                Your Answer:{' '}
+                <span style={{ color: isCorrect ? colors.success : colors.danger }}>
+                  {userAnswer}
+                </span>
               </p>
-            )}
-          </div>
-        ))}
+              {!isCorrect && (
+                <p className="text-sm" style={{ color: colors.textMuted }}>
+                  Correct Answer: <span style={{ color: colors.success }}>{question.correctAnswer}</span>
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div className="flex gap-4 justify-center">
         <button
@@ -187,15 +180,15 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
           className="px-6 py-3 rounded-lg text-white font-medium transition-colors hover:opacity-80"
           style={{ backgroundColor: colors.secondary }}
         >
-          {isPassed && !isResultsMode ? 'Continue' : 'Close'}
+          {assessmentResults?.isPassed ? 'Continue' : 'Close'}
         </button>
-        {!isPassed && (
+        {!assessmentResults?.isPassed && onRetake && (
           <button
             onClick={onRetake}
             className="px-6 py-3 rounded-lg text-white font-medium transition-colors hover:opacity-80"
             style={{ backgroundColor: colors.accent }}
           >
-            Retake All Questions
+            Retake Assessment
           </button>
         )}
       </div>
@@ -207,13 +200,13 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
       <div className="mb-6">
         <div className="flex justify-between text-sm mb-2" style={{ color: colors.textMuted }}>
           <span>{assessment.questions.length} Questions</span>
-          <span>{Math.round((answers.filter(a => a !== '').length / assessment.questions.length) * 100)}% Answered</span>
+          <span>{Math.round((Object.keys(answers).length / assessment.questions.length) * 100)}% Answered</span>
         </div>
         <div className="w-full bg-gray-700 rounded-full h-2">
           <div
             className="h-2 rounded-full transition-all duration-300"
             style={{
-              width: `${(answers.filter(a => a !== '').length / assessment.questions.length) * 100}%`,
+              width: `${(Object.keys(answers).length / assessment.questions.length) * 100}%`,
               backgroundColor: colors.accent,
             }}
           />
@@ -221,14 +214,14 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
       </div>
 
       <div className="space-y-6">
-        {assessment.questions.map((question, index) => (
+        {assessment.questions.map((question) => (
           <div
             key={question.id}
             className="p-4 rounded-lg border"
             style={{ borderColor: colors.textMuted, backgroundColor: colors.primary }}
           >
             <h3 className="text-xl font-semibold mb-4" style={{ color: colors.text }}>
-              Question {index + 1}: {question.question}
+              Question: {question.question}
             </h3>
             <div className="space-y-3">
               {question.options?.map((option, optIndex) => (
@@ -236,16 +229,16 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
                   key={optIndex}
                   className="flex items-center p-4 rounded-lg border cursor-pointer transition-colors hover:bg-gray-800"
                   style={{
-                    borderColor: answers[index] === option ? colors.accent : '#374151',
-                    backgroundColor: answers[index] === option ? `${colors.accent}20` : colors.primary,
+                    borderColor: answers[question.id.toString()] === optIndex ? colors.accent : '#374151',
+                    backgroundColor: answers[question.id.toString()] === optIndex ? `${colors.accent}20` : colors.primary,
                   }}
                 >
                   <input
                     type="radio"
                     name={`question-${question.id}`}
-                    value={option}
-                    checked={answers[index] === option}
-                    onChange={() => handleAnswerChange(index, option)}
+                    value={optIndex}
+                    checked={answers[question.id.toString()] === optIndex}
+                    onChange={() => handleAnswerChange(question.id, optIndex)}
                     className="mr-3"
                     style={{ accentColor: colors.accent }}
                   />
@@ -260,7 +253,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
       <div className="mt-6 flex justify-center">
         <button
           onClick={handleSubmit}
-          disabled={answers.filter(a => a !== '').length < assessment.questions.length}
+          disabled={Object.keys(answers).length < assessment.questions.length}
           className="px-6 py-3 rounded-lg text-white font-medium transition-colors hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ backgroundColor: colors.success }}
         >
@@ -268,7 +261,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         </button>
       </div>
 
-      {answers.filter(a => a !== '').length < assessment.questions.length && (
+      {Object.keys(answers).length < assessment.questions.length && (
         <div className="mt-4 p-3 rounded-lg text-center" style={{ backgroundColor: `${colors.warning}20`, borderColor: colors.warning }}>
           <p className="text-sm" style={{ color: colors.warning }}>
             Please answer all questions before submitting.
@@ -311,11 +304,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         </div>
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto pt-20 px-6">
-          {mode === 'results' ? (
-            renderResults(mode === 'results', mode === 'results' ? assessmentResults?.score || 0 : score, mode === 'results' ? assessmentResults?.isPassed || false : score === 100)
-          ) : (
-            renderQuestions()
-          )}
+          {mode === 'results' ? renderResults() : renderQuestions()}
         </div>
       </div>
     </div>

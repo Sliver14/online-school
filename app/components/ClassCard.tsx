@@ -4,39 +4,6 @@ import React from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Lock } from 'lucide-react';
 
-interface Question {
-  id: number;
-  question: string;
-  options: string[];
-  correctAnswer: string;
-}
-
-interface AssessmentData {
-  id: number;
-  title: string;
-  questions: Question[];
-}
-
-interface VideoData {
-  id: number;
-  title: string;
-  videoUrl: string;
-  classNumber: number;
-  videoPosterUrl?: string;
-  order: number;
-}
-
-interface ResourceData {
-  id: number;
-  title: string;
-  type: 'READ' | 'ESSAY' | 'VIDEO' | 'LINK' | 'ASSIGNMENT' | 'NOTE';
-  content?: string;
-  resourceUrl?: string;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface ClassCardProps {
   classItem: {
     id: number;
@@ -46,27 +13,24 @@ interface ClassCardProps {
     duration: string;
     videoUrl: string;
     posterUrl: string;
-    videos: VideoData[];
-    assessments: AssessmentData[];
-    resources: ResourceData[];
+    assessment: any[];
   };
   index: number;
   isLocked: { locked: boolean; reason: string };
-  timer?: number; // Seconds remaining
 }
 
-const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer }) => {
+const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked }) => {
   const { setSelectedClassId, setActiveTab } = useAppContext();
 
   // Generate a color gradient based on index
   const getGradientColor = (index: number) => {
     const gradients = [
-      'from-primary-400 to-secondary-400',
-      'from-success-400 to-info-400',
-      'from-warning-400 to-error-400',
-      'from-primary-500 to-secondary-500',
-      'from-info-400 to-success-400',
-      'from-error-400 to-warning-400',
+      'from-primary-400 to-secondary-400', // #9d4edd to #ffb347
+      'from-success-400 to-info-400', // #4ade80 to #38bdf8
+      'from-warning-400 to-error-400', // #f59e0b to #f87171
+      'from-primary-500 to-secondary-500', // #7b2cbf to #FF9900
+      'from-info-400 to-success-400', // #38bdf8 to #4ade80
+      'from-error-400 to-warning-400', // #f87171 to #f59e0b
     ];
     return gradients[index % gradients.length];
   };
@@ -79,16 +43,17 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
       onClick={() => {
         if (!isLocked.locked) {
           setSelectedClassId(classItem.id.toString());
-          setActiveTab(''); // Clear active tab
-          sessionStorage.setItem('selectedClassId', classItem.id.toString());
+          setActiveTab(''); // Clear active tab when navigating to ClassView
+          sessionStorage.setItem('selectedClassId', classItem.id.toString()); // Save to sessionStorage
         }
       }}
     >
       <div className={`h-16 bg-gradient-to-r ${getGradientColor(index)} flex items-center justify-center text-white dark:text-dark-text-primary text-lg font-semibold relative`}>
         <span className="text-center px-4 text-sm">{classItem.classNumber || `Class ${index + 1}`}</span>
         {isLocked.locked && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-error-500 dark:bg-error-700 text-white text-xs p-2 rounded-full">
+          <div className="absolute top-3 right-3 flex items-center gap-1 bg-error-500 dark:bg-error-700 text-white text-xs p-2  rounded-full">
             <Lock className="w-3 h-3" />
+            {/* Locked */}
           </div>
         )}
       </div>
@@ -116,14 +81,6 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
           <div className="mt-2 text-sm text-error-500 dark:text-error-400 flex items-center gap-1 desktop_paragraph tablet_paragraph mobile_paragraph">
             <Lock className="w-4 h-4" />
             {isLocked.reason}
-          </div>
-        )}
-
-        {/* Timer display */}
-        {timer !== null && timer > 0 && (
-          <div className="mt-2 text-sm text-info-500 dark:text-info-400 flex items-center gap-1 desktop_paragraph tablet_paragraph mobile_paragraph">
-            <span>⏳</span>
-            <span>{Math.floor(timer / 60)}m {timer % 60}s remaining</span>
           </div>
         )}
       </div>
