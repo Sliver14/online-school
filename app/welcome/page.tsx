@@ -28,13 +28,11 @@ const Welcome = () => {
   const handleGetStarted = () => {
     setClickedButton('getStarted');
     router.push('/auth?mode=signup');
-    setTimeout(() => setClickedButton(null), 300);
   };
 
   const handleLogin = () => {
     setClickedButton('login');
     router.push('/auth?mode=signin');
-    setTimeout(() => setClickedButton(null), 300);
   };
 
   if (userLoading) {
@@ -118,7 +116,7 @@ const Welcome = () => {
             `}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 transform translate-x-full group-hover:translate-x-0 transition-transform duration-300 opacity-10"></div>
-            <span className="relative z-10 mr-2">Get Started</span>
+            <span className="relative z-10 mr-2">Create Account</span>
             <ArrowRight
               size={24}
               className={`relative z-10 transform transition-transform duration-300 ${isGetStartedHovered ? 'translate-x-2' : ''}`}
