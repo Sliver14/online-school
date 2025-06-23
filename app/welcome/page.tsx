@@ -26,12 +26,12 @@ const Welcome = () => {
   }, [userId, userLoading, userError, router]);
 
   const handleGetStarted = () => {
-    setClickedButton('getStarted');
+    // setClickedButton('getStarted');
     router.push('/auth?mode=signup');
   };
 
   const handleLogin = () => {
-    setClickedButton('login');
+    // setClickedButton('login');
     router.push('/auth?mode=signin');
   };
 
