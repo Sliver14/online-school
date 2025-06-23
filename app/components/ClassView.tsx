@@ -557,14 +557,14 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary overflow-hidden backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
             <div className="relative">
               {selectedVideo ? (
                 <>
                   <video
                     ref={videoRef}
-                    className="w-full h-64 md:h-96 bg-black object-contain"
+                    className="w-full h-auto md:h-96 bg-black object-cover"
                     src={selectedVideo.videoUrl}
                     poster={selectedVideo.videoPosterUrl}
                     onTimeUpdate={handleTimeUpdate}
@@ -765,11 +765,17 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
 
                   {resource.type === 'ESSAY' && (
                     <div className="mt-2 flex items-center gap-4">
-                      <input
+                      {/* <input
                         type="file"
                         accept=".pdf,.doc,.docx"
                         onChange={(e) => setEssayFile(e.target.files ? e.target.files[0] : null)}
                         className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph"
+                      /> */}
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={(e) => setEssayFile(e.target.files ? e.target.files[0] : null)}
+                        className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph w-full sm:w-auto"
                       />
                       <button
                         onClick={() => handleEssayUpload(resource)}
