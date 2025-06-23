@@ -11,8 +11,7 @@ export async function middleware(req: NextRequest) {
   try {
     // Validate token with API
     const response = await axios.get(`${req.nextUrl.origin}/api/auth/tokenverify`, {
-      headers: { Cookie: `authToken=${token}` },
-      cache: 'no-store',
+      headers: { Cookie: `authToken=${token}` }, 
     });
     if (!response.data.userId) {
       return NextResponse.redirect(new URL('/welcome', req.url));

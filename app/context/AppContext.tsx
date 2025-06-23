@@ -69,9 +69,16 @@ interface AppContextType {
     videoWatched?: { [classId: string]: boolean };
     assessmentCompleted?: { [assessmentId: string]: boolean };
   }) => void;
-  handleVideoComplete: (classId: string, videoId?: number) => Promise<void>;
-  handleAssessmentComplete: (assessmentId: string) => Promise<void>;
+  handleVideoComplete: (classId: string, videoId?: number) => Promise<HandleVideoCompleteResponse>;
+  handleAssessmentComplete: (assessmentId: string, answers: Record<string, number>) => Promise<void>;
+
 }
+
+type HandleVideoCompleteResponse = {
+  success: boolean;
+  error?: string;
+  message?: string;
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -120,46 +127,48 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-    const handleVideoComplete = useCallback(async (classId: string, videoId?: number) => {
+    type HandleVideoCompleteResponse = {
+    success: boolean;
+    error?: string;
+    message?: string;
+  };
+
+const handleVideoComplete = useCallback(
+  async (classId: string, videoId?: number): Promise<HandleVideoCompleteResponse> => {
     if (userLoading) {
-        console.log('Waiting for user authentication...');
-        toast.info('Please wait while we verify your session');
-        return { success: false, error: 'User authentication pending' }; // Return a fallback response
+      toast('ℹ️ Please wait while we verify your session');
+      return { success: false, error: 'User loading' };
     }
+
     if (userError || !userId) {
-        console.error('User error or not authenticated:', userError);
-        toast.error(userError || 'Please sign in to mark video as watched');
-        return { success: false, error: 'User not authenticated' }; // Return a fallback response
+      toast.error(userError || 'Please sign in');
+      return { success: false, error: userError || 'User not authenticated' };
     }
 
     try {
-        const response = await axios.post('/api/user-progress/video-watched', {
+      const response = await axios.post('/api/user-progress/video-watched', {
         userId: parseInt(userId, 10),
         classId: parseInt(classId, 10),
         videoId,
         watchedAt: new Date().toISOString(),
-        });
-        if (response.data.success) {
-        setVideoWatched((prev) => ({ ...prev, [classId]: true }));
-        console.log(`Video marked as watched for class ${classId}, video ${videoId}`);
-        toast.success('Video progress saved');
-        } else {
-        console.error('Failed to mark video as watched:', response.data.error);
-        toast.error('Failed to save video progress');
-        }
-        return response.data; // Return the API response
-    } catch (err) {
-        console.error('Error marking video as watched:', err);
-        toast.error('Error saving video progress');
-        return { success: false, error: 'Error saving video progress' }; // Return a fallback response on error
+      });
+
+      return response.data; // ✅ return API response object here
+    } catch (err: any) {
+      toast.error('Error saving video progress');
+      return { success: false, error: err.message };
     }
-    }, [userId, userLoading, userError]);
+  },
+  [userId, userLoading, userError]
+);
+
+
 
     const handleAssessmentComplete = useCallback(
     async (assessmentId: string, answers: Record<string, number>) => {
         if (userLoading) {
         console.log('Waiting for user authentication...');
-        toast.info('Please wait while we verify your session');
+        toast('ℹ️ Please wait while we verify your session');
         return;
         }
         if (userError || !userId) {

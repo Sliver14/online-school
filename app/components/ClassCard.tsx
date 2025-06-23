@@ -13,11 +13,13 @@ interface ClassCardProps {
     duration: string;
     videoUrl: string;
     posterUrl: string;
-    assessment: any[];
+    assessments: any[];
   };
   index: number;
   isLocked: { locked: boolean; reason: string };
+  timer: number | null; // ✅ Add this line
 }
+
 
 const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked }) => {
   const { setSelectedClassId, setActiveTab } = useAppContext();

@@ -16,7 +16,7 @@ const ResetPasswordForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [token, setToken] = useState('');
-  const { userId, loading: userLoading, error: userError } = useUser();
+  const { userId, userLoading, userError } = useUser();
   const searchParams = useSearchParams();
   const router = useRouter();
 
