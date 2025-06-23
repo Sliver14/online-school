@@ -578,7 +578,7 @@ const Authpage: React.FC = () => {
       {/* Back to Home Button */}
       <button
         type="button"
-        onClick={() => router.push('/')}
+        onClick={() => router.push('/welcome')}
         className="fixed top-4 left-4 z-50 p-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-neutral-200 flex items-center justify-center text-primary-400 hover:text-secondary-500 hover:bg-white/90 transition-all duration-300 touch-manipulation"
         style={{ 
           minWidth: '48px', 
