@@ -560,7 +560,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         {classData.title}
       </h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary overflow-hidden backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
             <div className="relative">
@@ -782,7 +782,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                   {assignment.content && (
                     <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
                       <p className="font-semibold text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">Instructions:</p>
-                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{assignment.content}</p>
+                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Submit assessemnt here</p>
                     </div>
                   )}
 
