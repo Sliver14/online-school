@@ -181,7 +181,7 @@ model ClassAssignmentSubmission {
   class       Class    @relation(fields: [classId], references: [id])
   classId     Int
   content     String
-  filePath    String?
+  text        String   @db.Text // New field for text submission
   submittedAt DateTime @default(now())
   reviewed    Boolean  @default(false)
   remarks     String?

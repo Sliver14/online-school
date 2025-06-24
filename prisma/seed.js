@@ -145,9 +145,10 @@ async function main() {
     // Class 1 Resources
     { classId: classIdMap['The New Creature'], title: 'Now That You Are Born Again', type: 'READ', resourceUrl: '#', order: 1 },
     { classId: classIdMap['The New Creature'], title: 'Recreating Your World', type: 'READ', resourceUrl: '#', order: 2 },
-    { classId: classIdMap['The New Creature'], title: 'Jesus The Overcoming Life', type: 'VIDEO', resourceUrl: '#', order: 3 },
-    { classId: classIdMap['The New Creature'], title: 'Explain your understanding of “if any man be in Christ he is a new creation” as stated in 2 Cor 5:17 using yourself as an example.', type: 'ESSAY', content: 'Explain your understanding of “if any man be in Christ he is a new creation” as stated in 2 Cor 5:17 using yourself as an example.', requiresUpload: true, order: 4 },
-    { classId: classIdMap['The New Creature'], title: 'Will I be continually assured of my salvation despite what I feel or see?', type: 'ESSAY', content: 'Will I be continually assured of my salvation despite what I feel or see?', requiresUpload: true, order: 5 },
+    { classId: classIdMap['The New Creature'], title: 'The Overcoming Life', type: 'VIDEO', resourceUrl: '#', order: 3 },
+    { classId: classIdMap['The New Creature'], title: 'Jesus', type: 'VIDEO', resourceUrl: '#', order: 4 },
+    { classId: classIdMap['The New Creature'], title: 'Explain your understanding of “if any man be in Christ he is a new creation” as stated in 2 Cor 5:17 using yourself as an example.', type: 'ESSAY', content: 'Explain your understanding of “if any man be in Christ he is a new creation” as stated in 2 Cor 5:17 using yourself as an example.', requiresUpload: true, order: 5 },
+    { classId: classIdMap['The New Creature'], title: 'Will I be continually assured of my salvation despite what I feel or see?', type: 'ESSAY', content: 'Will I be continually assured of my salvation despite what I feel or see?', requiresUpload: true, order: 6 },
 
     // Class 2 Resources
     { classId: classIdMap['The Holy Spirit'], title: 'The Seven Spirits of God', type: 'READ', resourceUrl: '#', order: 1 },

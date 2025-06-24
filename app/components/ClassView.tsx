@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Play, Pause, Volume2, VolumeX, Maximize, Lock, FileText, Upload, Link2, Video } from 'lucide-react';
+import { ChevronLeft, Play, Pause, Volume2, VolumeX, Maximize, Lock, FileText, Link2, Video } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import axios from 'axios';
 import { useUser } from '../context/UserContext';
@@ -91,7 +91,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     message: string;
   } | null>(null);
   const [assessmentAttempts, setAssessmentAttempts] = useState<{ [assessmentId: string]: boolean }>({});
-  const [assignmentFiles, setAssignmentFiles] = useState<{ [resourceId: number]: File | null }>({});
+  const [assignmentTexts, setAssignmentTexts] = useState<{ [resourceId: number]: string }>({});
 
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
@@ -301,7 +301,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
           initializeProgress({
             videoWatched: { [selectedClassId]: true },
           });
-          showNotification('success', `Video completed! Next class (${nextClass.title}) unlocks in 5 minutes.`);
+          showNotification('success', `Video completed! Next class (${nextClass.title}) will unlock in 5 minutes upon completion of the additional study material and assessments.`);
         } else {
           throw new Error(timerResponse.data.error || 'Failed to set timer for next class');
         }
@@ -422,51 +422,44 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     }
   };
 
-  const handleAssignmentUpload = async (resource: ResourceData) => {
+  const handleAssignmentSubmit = async (resource: ResourceData) => {
     if (userLoading || !userId) {
       handleError('User not authenticated', new Error('User authentication pending'));
       return;
     }
-    const file = assignmentFiles[resource.id];
-    if (!file) {
-      showNotification('error', 'Please select a file to upload.');
+    const text = assignmentTexts[resource.id]?.trim();
+    if (!text) {
+      showNotification('error', 'Please enter text for the submission.');
       return;
     }
-    if (file.type !== 'application/pdf') {
-      showNotification('error', 'Only PDF files are allowed.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      showNotification('error', 'File size exceeds 5MB limit.');
+    if (text.length > 5000) {
+      showNotification('error', 'Text exceeds 5000 character limit.');
       return;
     }
     try {
       if (!selectedClassId) {
         throw new Error('Class ID missing');
       }
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', userId);
-      formData.append('classId', selectedClassId);
-      formData.append('resourceId', resource.id.toString());
-      formData.append('content', resource.content || resource.title);
-
-      const response = await axios.post('/api/user-progress/submit-assignment', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response = await axios.post('/api/user-progress/submit-assignment', {
+        userId,
+        classId: selectedClassId,
+        resourceId: resource.id,
+        content: resource.content || resource.title,
+        text,
       });
       if (response.data.success) {
         showNotification('success', 'Assignment submitted successfully!');
-        setAssignmentFiles(prev => ({ ...prev, [resource.id]: null }));
+        setAssignmentTexts(prev => ({ ...prev, [resource.id]: '' }));
       } else {
         throw new Error(response.data.error || 'Failed to submit assignment');
       }
     } catch (error: any) {
-      handleError(error.response?.data?.error || 'Failed to upload assignment', error);
+      handleError(error.response?.data?.error || 'Failed to submit assignment', error);
     }
   };
 
-  const handleFileChange = (resourceId: number, file: File | null) => {
-    setAssignmentFiles(prev => ({ ...prev, [resourceId]: file }));
+  const handleTextChange = (resourceId: number, text: string) => {
+    setAssignmentTexts(prev => ({ ...prev, [resourceId]: text }));
   };
 
   const handleVideoSelect = (video: VideoData) => {
@@ -780,7 +773,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                       <div>
                         <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">{assignment.title}</h4>
                         <p className="text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
-                          {assignment.type === 'ESSAY' || assignment.requiresUpload ? 'Submission Required' : 'Assignment'}
+                          {assignment.type === 'ESSAY' || assignment.requiresUpload ? 'Text Submission Required' : 'Assignment'}
                         </p>
                       </div>
                     </div>
@@ -794,23 +787,23 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                   )}
 
                   {(assignment.type === 'ESSAY' || assignment.type === 'ASSIGNMENT') && assignment.requiresUpload && (
-                    <div className="mt-4 flex items-center gap-4">
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => handleFileChange(assignment.id, e.target.files ? e.target.files[0] : null)}
-                        className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph"
+                    <div className="mt-4 space-y-4">
+                      <textarea
+                        value={assignmentTexts[assignment.id] || ''}
+                        onChange={(e) => handleTextChange(assignment.id, e.target.value)}
+                        placeholder="Enter your response here..."
+                        className="w-full h-32 p-3 border border-neutral-200 dark:border-dark-border-secondary rounded-lg text-neutral-700 dark:text-dark-text-muted bg-neutral-50 dark:bg-dark-bg-tertiary focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-400 desktop_paragraph tablet_paragraph mobile_paragraph"
                       />
                       <button
-                        onClick={() => handleAssignmentUpload(assignment)}
-                        disabled={!assignmentFiles[assignment.id]}
+                        onClick={() => handleAssignmentSubmit(assignment)}
+                        disabled={!assignmentTexts[assignment.id]?.trim()}
                         className={`px-4 py-2 text-white rounded-lg transition-colors desktop_paragraph tablet_paragraph mobile_paragraph ${
-                          assignmentFiles[assignment.id]
+                          assignmentTexts[assignment.id]?.trim()
                             ? 'bg-primary-400 dark:bg-primary-400 hover:bg-primary-500 dark:hover:bg-primary-500'
                             : 'bg-neutral-400 dark:bg-neutral-500 cursor-not-allowed'
                         }`}
                       >
-                        Upload Submission
+                        Submit Response
                       </button>
                     </div>
                   )}
