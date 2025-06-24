@@ -11,22 +11,36 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File | null;
     const userId = formData.get('userId') as string | null;
     const classId = formData.get('classId') as string | null;
+    const resourceId = formData.get('resourceId') as string | null;
     const content = formData.get('content') as string | null;
 
     // Validate inputs
-    if (!file || !userId || !classId || !content) {
+    if (!file || !userId || !classId || !resourceId || !content) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: file, userId, classId, content' },
+        { success: false, error: 'Missing required fields: file, userId, classId, resourceId, content' },
         { status: 400 }
       );
     }
 
     const userIdNum = parseInt(userId);
     const classIdNum = parseInt(classId);
+    const resourceIdNum = parseInt(resourceId);
 
-    if (isNaN(userIdNum) || isNaN(classIdNum)) {
+    if (isNaN(userIdNum) || isNaN(classIdNum) || isNaN(resourceIdNum)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid userId or classId' },
+        { success: false, error: 'Invalid userId, classId, or resourceId' },
+        { status: 400 }
+      );
+    }
+
+    // Validate resource
+    const resource = await prisma.classResource.findUnique({
+      where: { id: resourceIdNum },
+    });
+
+    if (!resource || resource.classId !== classIdNum || resource.type !== 'ESSAY' || !resource.requiresUpload) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or non-uploadable resource' },
         { status: 400 }
       );
     }
@@ -47,39 +61,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save file (local storage; consider S3 for production)
+    // Save file (local storage; consider Cloudinary/S3 for production)
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const fileName = `${Date.now()}_${file.name}`;
     const filePath = join(process.cwd(), 'uploads', fileName);
     await writeFile(filePath, buffer);
 
-    // Create ClassEssaySubmission
-    const submission = await prisma.classEssaySubmission.create({
+    // Create ClassAssignmentSubmission
+    const submission = await prisma.classAssignmentSubmission.create({
       data: {
         userId: userIdNum,
         classId: classIdNum,
         content,
+        filePath,
         submittedAt: new Date(),
         reviewed: false,
         remarks: null,
-        // Store file path as part of content or add a new field if needed
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Essay submitted successfully',
+      message: 'Assignment submitted successfully',
       data: {
         fileName,
         filePath,
         submissionId: submission.id,
+        resourceId: resourceIdNum,
       },
     });
   } catch (error) {
-    console.error('Error submitting essay:', error);
+    console.error('Error submitting assignment:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to submit essay' },
+      { success: false, error: 'Failed to submit assignment' },
       { status: 500 }
     );
   } finally {

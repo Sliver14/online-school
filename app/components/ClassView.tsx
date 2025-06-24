@@ -55,7 +55,123 @@ interface ClassData {
   videos: VideoData[];
   assessments: AssessmentData[];
   resources: ResourceData[];
+  assignments: ResourceData[];
 }
+
+const classResources = [
+  {
+    classNumber: 1,
+    studyMaterials: [
+      { type: "BOOK", title: "Now That You Are Born Again", link: "#" },
+      { type: "BOOK", title: "Recreating Your World", link: "#" },
+      { type: "MESSAGE", title: "Jesus The Overcoming Life", link: "#" }
+    ],
+    assignments: [
+      {
+        title: "Explain your understanding of “if any man be in Christ he is a new creation” as stated in 2 Cor 5:17 using yourself as an example.",
+        requiresUpload: true
+      },
+      {
+        title: "Will I be continually assured of my salvation despite what I feel or see?",
+        requiresUpload: true
+      }
+    ]
+  },
+  {
+    classNumber: 2,
+    studyMaterials: [
+      { type: "BOOK", title: "The Seven Spirits of God", link: "#" },
+      { type: "BOOK", title: "Seven Things the Holy Spirit will do in You", link: "#" },
+      { type: "BOOK", title: "Seven Things the Holy Spirit will do for You", link: "#" },
+      { type: "BOOK", title: "The Holy Spirit and You", link: "#" },
+      { type: "BOOK", title: "The Oil and the Mantle", link: "#" }
+    ],
+    assignments: [
+      {
+        title: "Read the Book “The Seven Spirits of God”",
+        requiresUpload: false
+      },
+      {
+        title: "Speak in Tongues for at least 10 Minutes each Day till the next class. Note observations or changes you notice about yourself, or specific thoughts or direction that you received as you prayed.",
+        requiresUpload: true
+      }
+    ]
+  },
+  {
+    classNumber: 3,
+    studyMaterials: [
+      { type: "MESSAGE", title: "Understanding Righteousness", link: "#" },
+      { type: "MESSAGE", title: "3 Important Laws", link: "#" },
+      { type: "MESSAGE", title: "Apologetics vs Activism", link: "#" }
+    ],
+    assignments: [
+      {
+        title: "Listen to the following Messages:\n1. Understanding Righteousness\n2. 3 Important Laws\n3. Apologetics vs Activism\n\nWrite 3 Striking things you learned and which you will put to work, from each message.",
+        requiresUpload: true
+      }
+    ]
+  },
+  {
+    classNumber: "4A",
+    studyMaterials: [
+      { type: "BOOK", title: "Join This Chariot", link: "#" },
+      { type: "TEXT", title: "Seven Steps to Perfecting Soulwinning", link: "#" }
+    ],
+    assignments: [
+      {
+        title: "Read the explanations of the Seven Steps to Perfecting Soulwinning",
+        requiresUpload: false
+      },
+      {
+        title: "Get your Personal Copy of “Join This Chariot”, read it, and answer the questions at end of each Chapter (in the Book).",
+        requiresUpload: true
+      },
+      {
+        title: "Reach out to 2 people and bring them to church next week. Submit their names at the next class. Note any challenge or testimony you encountered, and share with us.",
+        requiresUpload: true
+      }
+    ]
+  },
+  {
+    classNumber: 5,
+    studyMaterials: [
+      { type: "BOOK", title: "Power of Your Mind", link: "#" },
+      { type: "MESSAGE", title: "Topical Teaching Highlights on Christian Growth and Maturity", link: "#" },
+      { type: "MESSAGE", title: "Tithes and Offerings", link: "#" }
+    ],
+    assignments: [
+      {
+        title: "Get Your Personal Copy of the Book “Power of Your Mind” and read it. Discuss 2 striking thoughts you received as you studied the Book and submit. It should be at least 1 page long.",
+        requiresUpload: true
+      },
+      {
+        title: "Download from PCDL and listen to “Topical Teaching Highlights on Christian Growth and Maturity”",
+        requiresUpload: false
+      },
+      {
+        title: "Listen to the Message “Tithes and Offerings”. Sign up for at least one Partnership Arm",
+        requiresUpload: true
+      }
+    ]
+  },
+  {
+    classNumber: 6,
+    studyMaterials: [
+      { type: "TEXT", title: "Why We Must Go To Church (Pamphlet)", link: "#" },
+      { type: "MESSAGE", title: "The Church, Yesterday, Today and Forever", link: "#" }
+    ],
+    assignments: [
+      {
+        title: "Special Study on “Why We Must Go To Church” and provide answers to the questions in the Pamphlet.",
+        requiresUpload: true
+      },
+      {
+        title: "Listen to the Special Message “The Church, Yesterday, Today and Forever”",
+        requiresUpload: false
+      }
+    ]
+  }
+];
 
 const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) => {
   const {
@@ -66,7 +182,6 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     videoWatched,
     assessmentCompleted,
     selectedClassId,
-    setSelectedClassId,
     initializeProgress,
   } = useAppContext();
   const { userId, userLoading, userError } = useUser();
@@ -167,7 +282,37 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         const response = await axios.get(`/api/classes?id=${selectedClassId}`);
         if (response.data.success) {
           const fetchedClassData = response.data.data;
-          setClassData(fetchedClassData);
+          // Map classResources to resources and assignments
+          const classResource = classResources.find(
+            (cr) => cr.classNumber.toString() === selectedClassId
+          );
+          const resources: ResourceData[] = classResource
+            ? classResource.studyMaterials.map((material, index) => ({
+                id: index + 1,
+                title: material.title,
+                type: material.type === 'BOOK' || material.type === 'TEXT' ? 'READ' : 'VIDEO',
+                resourceUrl: material.link,
+                order: index + 1,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }))
+            : [];
+          const assignments: ResourceData[] = classResource
+            ? classResource.assignments.map((assignment, index) => ({
+                id: index + 1000, // Avoid ID conflicts with resources
+                title: assignment.title,
+                type: assignment.requiresUpload ? 'ESSAY' : 'ASSIGNMENT',
+                content: assignment.title,
+                order: index + 1,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }))
+            : [];
+          setClassData({
+            ...fetchedClassData,
+            resources,
+            assignments,
+          });
           if (fetchedClassData.videos && fetchedClassData.videos.length > 0) {
             setSelectedVideo(fetchedClassData.videos[0]);
           }
@@ -276,11 +421,11 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
 
       if (response.message === 'Video already completed') {
         showNotification('info', `Video "${selectedVideo.title}" is already completed!`);
-        return; // Exit early to skip timer logic
+        return;
       }
 
       const now = new Date();
-      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
+      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
 
       const classResponse = await axios.get('/api/classes');
       if (!classResponse.data.success) {
@@ -342,24 +487,23 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     setIsFullscreen(!isFullscreen);
   };
 
-const handleAssessmentStart = async (assessment: AssessmentData) => {
-  console.log('Starting assessment:', assessment); // Debug
-  if (userLoading || !userId) {
-    handleError('User not authenticated', new Error('User authentication pending'));
-    return;
-  }
-  if (!selectedClassId || !videoWatched[selectedClassId]) {
-    showNotification('error', 'Please watch the class video before taking the assessment.');
-    return;
-  }
-  if (!assessment || !assessment.questions || assessment.questions.length === 0) {
-    handleError('Assessment has no questions available');
-    return;
-  }
-  setSelectedAssessment(assessment);
-  setAssessmentResults(null);
-  setIsAssessmentModalOpen(true);
-};
+  const handleAssessmentStart = async (assessment: AssessmentData) => {
+    if (userLoading || !userId) {
+      handleError('User not authenticated', new Error('User authentication pending'));
+      return;
+    }
+    if (!selectedClassId || !videoWatched[selectedClassId]) {
+      showNotification('error', 'Please watch the class video before taking the assessment.');
+      return;
+    }
+    if (!assessment || !assessment.questions || assessment.questions.length === 0) {
+      handleError('Assessment has no questions available');
+      return;
+    }
+    setSelectedAssessment(assessment);
+    setAssessmentResults(null);
+    setIsAssessmentModalOpen(true);
+  };
 
   const handleViewResults = async (assessment: AssessmentData) => {
     if (userLoading || !userId) {
@@ -370,9 +514,7 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
     try {
       const response = await axios.get(`/api/user-progress/assessment-results/${assessment.id}?userId=${userId}`);
       if (response.data.success) {
-        const resultData = response.data.data;
-        console.log('API response:', response.data); // Debug
-        setAssessmentResults(resultData); // Use raw response, no need to map
+        setAssessmentResults(response.data.data);
         setSelectedAssessment(assessment);
         setIsAssessmentModalOpen(true);
       } else {
@@ -448,13 +590,13 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.data.success) {
-        showNotification('success', 'Essay submitted successfully!');
+        showNotification('success', 'Submission uploaded successfully!');
         setEssayFile(null);
       } else {
         throw new Error(response.data.error || 'Failed to submit essay');
       }
     } catch (error: any) {
-      handleError(error.response?.data?.error || 'Failed to upload essay', error);
+      handleError(error.response?.data?.error || 'Failed to upload submission', error);
     }
   };
 
@@ -681,7 +823,8 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
       <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary p-6 backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
         <div className="flex space-x-6 mb-6 border-b border-neutral-200 dark:border-dark-border-secondary">
           {[
-            { id: 'materials', label: 'Course Materials' },
+            { id: 'materials', label: 'Study Materials' },
+            { id: 'assignments', label: 'Assignments' },
             { id: 'assessments', label: 'Assessments' },
           ].map((tab) => (
             <button
@@ -719,58 +862,61 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
                       <div>
                         <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">{resource.title}</h4>
                         <p className="text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
-                          {resource.type.charAt(0).toUpperCase() + resource.type.slice(1).toLowerCase()} Resource
+                          {resource.type === 'READ' ? 'Reading Material' : 'Video Resource'}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {resource.type === 'NOTE' && resource.content && (
-                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
-                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
-                    </div>
-                  )}
-
-                  {resource.type === 'ASSIGNMENT' && resource.content && (
-                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
-                      <p className="font-semibold text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">Assignment Instructions:</p>
-                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
-                    </div>
-                  )}
-
-                  {resource.type === 'READ' && (
-                    <div className="mt-2">
-                      {resource.content && (
-                        <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
-                      )}
-                      {resource.resourceUrl && (
-                        <button
-                          onClick={() => handleResourceAccess(resource)}
-                          className="mt-2 px-4 py-2 bg-success-500 dark:bg-success-600 text-white rounded-lg hover:bg-success-600 dark:hover:bg-success-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
-                        >
-                          Read Now
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {(resource.type === 'VIDEO' || resource.type === 'LINK') && resource.resourceUrl && (
+                  {(resource.type === 'VIDEO' || resource.type === 'READ') && resource.resourceUrl && (
                     <button
                       onClick={() => handleResourceAccess(resource)}
                       className="px-4 py-2 bg-success-500 dark:bg-success-600 text-white rounded-lg hover:bg-success-600 dark:hover:bg-success-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
                     >
-                      {resource.type === 'VIDEO' ? 'Watch Video' : 'Visit Link'}
+                      {resource.type === 'VIDEO' ? 'Watch Video' : 'Access Resource'}
                     </button>
                   )}
+                </div>
+              ))
+            ) : (
+              <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">No study materials available for this class.</p>
+            )}
+          </div>
+        )}
 
-                  {resource.type === 'ESSAY' && (
+        {activeResourceTab === 'assignments' && (
+          <div className="space-y-4">
+            {classData.assignments && classData.assignments.length > 0 ? (
+              classData.assignments.map((assignment) => (
+                <div
+                  key={assignment.id}
+                  className="p-4 rounded-lg border border-neutral-200 dark:border-dark-border-secondary bg-neutral-100 dark:bg-dark-bg-secondary"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold bg-primary-400 dark:bg-primary-400"
+                      >
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">{assignment.title}</h4>
+                        <p className="text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+                          {assignment.type === 'ESSAY' ? 'Submission Required' : 'Assignment'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {assignment.content && (
+                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
+                      <p className="font-semibold text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">Instructions:</p>
+                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{assignment.content}</p>
+                    </div>
+                  )}
+
+                  {assignment.type === 'ESSAY' && (
                     <div className="mt-2 flex items-center gap-4">
-                      {/* <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={(e) => setEssayFile(e.target.files ? e.target.files[0] : null)}
-                        className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph"
-                      /> */}
                       <input
                         type="file"
                         accept=".pdf,.doc,.docx"
@@ -778,20 +924,20 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
                         className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph w-full sm:w-auto"
                       />
                       <button
-                        onClick={() => handleEssayUpload(resource)}
+                        onClick={() => handleEssayUpload(assignment)}
                         disabled={!essayFile}
                         className={`px-4 py-2 text-white rounded-lg transition-colors desktop_paragraph tablet_paragraph mobile_paragraph ${
                           essayFile ? 'bg-primary-400 dark:bg-primary-400 hover:bg-primary-500' : 'bg-neutral-400 dark:bg-neutral-500 cursor-not-allowed'
                         }`}
                       >
-                        Upload Essay
+                        Upload Submission
                       </button>
                     </div>
                   )}
                 </div>
               ))
             ) : (
-              <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">No materials available for this class.</p>
+              <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">No assignments available for this class.</p>
             )}
           </div>
         )}
@@ -869,24 +1015,24 @@ const handleAssessmentStart = async (assessment: AssessmentData) => {
         )}
       </div>
 
-    {selectedAssessment && (
-      <AssessmentModal
-        isOpen={isAssessmentModalOpen}
-        onClose={() => {
-          setIsAssessmentModalOpen(false);
-          setSelectedAssessment(null);
-        }}
-        assessment={selectedAssessment}
-        onComplete={async (answers: Record<string, number>) => {
-          if (selectedAssessment) {
-            await handleAssessmentComplete(selectedAssessment.id.toString(), answers);
-            await handleViewResults(selectedAssessment); // Refresh results
-          }
-        }}
-        assessmentResults={assessmentResults}
-        onRetake={handleRetakeAssessment}
-      />
-    )}
+      {selectedAssessment && (
+        <AssessmentModal
+          isOpen={isAssessmentModalOpen}
+          onClose={() => {
+            setIsAssessmentModalOpen(false);
+            setSelectedAssessment(null);
+          }}
+          assessment={selectedAssessment}
+          onComplete={async (answers: Record<string, number>) => {
+            if (selectedAssessment) {
+              await handleAssessmentComplete(selectedAssessment.id.toString(), answers);
+              await handleViewResults(selectedAssessment);
+            }
+          }}
+          assessmentResults={assessmentResults}
+          onRetake={handleRetakeAssessment}
+        />
+      )}
     </div>
   );
 };

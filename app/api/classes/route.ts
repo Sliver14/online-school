@@ -69,16 +69,31 @@ export async function GET(request: NextRequest) {
                         correctAnswer: q.correctAnswer
                     }))
                 })),
-                resources: classData.resources.map((resource) => ({
-                    id: resource.id,
-                    title: resource.title,
-                    type: resource.type,
-                    content: resource.content,
-                    resourceUrl: resource.resourceUrl,
-                    order: resource.order,
-                    createdAt: resource.createdAt,
-                    updatedAt: resource.updatedAt
-                }))
+                resources: classData.resources
+                    .filter(r => ['READ', 'VIDEO', 'LINK', 'NOTE'].includes(r.type))
+                    .map((resource) => ({
+                        id: resource.id,
+                        title: resource.title,
+                        type: resource.type,
+                        content: resource.content,
+                        resourceUrl: resource.resourceUrl,
+                        order: resource.order,
+                        createdAt: resource.createdAt,
+                        updatedAt: resource.updatedAt
+                    })),
+                assignments: classData.resources
+                    .filter(r => ['ESSAY', 'ASSIGNMENT'].includes(r.type))
+                    .map((resource) => ({
+                        id: resource.id,
+                        title: resource.title,
+                        type: resource.type,
+                        content: resource.content,
+                        resourceUrl: resource.resourceUrl,
+                        requiresUpload: resource.requiresUpload,
+                        order: resource.order,
+                        createdAt: resource.createdAt,
+                        updatedAt: resource.updatedAt
+                    }))
             };
 
             return NextResponse.json({
