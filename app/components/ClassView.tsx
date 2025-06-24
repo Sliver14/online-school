@@ -16,7 +16,7 @@ interface VideoData {
   id: number;
   title: string;
   videoUrl: string;
-  classNumber: number;
+  classNumber: string;
   videoPosterUrl?: string;
   order: number;
 }
@@ -40,6 +40,7 @@ interface ResourceData {
   type: 'READ' | 'ESSAY' | 'VIDEO' | 'LINK' | 'ASSIGNMENT' | 'NOTE';
   content?: string;
   resourceUrl?: string;
+  requiresUpload?: boolean;
   order: number;
   createdAt: string;
   updatedAt: string;
@@ -57,121 +58,6 @@ interface ClassData {
   resources: ResourceData[];
   assignments: ResourceData[];
 }
-
-const classResources = [
-  {
-    classNumber: 1,
-    studyMaterials: [
-      { type: "BOOK", title: "Now That You Are Born Again", link: "#" },
-      { type: "BOOK", title: "Recreating Your World", link: "#" },
-      { type: "MESSAGE", title: "Jesus The Overcoming Life", link: "#" }
-    ],
-    assignments: [
-      {
-        title: "Explain your understanding of “if any man be in Christ he is a new creation” as stated in 2 Cor 5:17 using yourself as an example.",
-        requiresUpload: true
-      },
-      {
-        title: "Will I be continually assured of my salvation despite what I feel or see?",
-        requiresUpload: true
-      }
-    ]
-  },
-  {
-    classNumber: 2,
-    studyMaterials: [
-      { type: "BOOK", title: "The Seven Spirits of God", link: "#" },
-      { type: "BOOK", title: "Seven Things the Holy Spirit will do in You", link: "#" },
-      { type: "BOOK", title: "Seven Things the Holy Spirit will do for You", link: "#" },
-      { type: "BOOK", title: "The Holy Spirit and You", link: "#" },
-      { type: "BOOK", title: "The Oil and the Mantle", link: "#" }
-    ],
-    assignments: [
-      {
-        title: "Read the Book “The Seven Spirits of God”",
-        requiresUpload: false
-      },
-      {
-        title: "Speak in Tongues for at least 10 Minutes each Day till the next class. Note observations or changes you notice about yourself, or specific thoughts or direction that you received as you prayed.",
-        requiresUpload: true
-      }
-    ]
-  },
-  {
-    classNumber: 3,
-    studyMaterials: [
-      { type: "MESSAGE", title: "Understanding Righteousness", link: "#" },
-      { type: "MESSAGE", title: "3 Important Laws", link: "#" },
-      { type: "MESSAGE", title: "Apologetics vs Activism", link: "#" }
-    ],
-    assignments: [
-      {
-        title: "Listen to the following Messages:\n1. Understanding Righteousness\n2. 3 Important Laws\n3. Apologetics vs Activism\n\nWrite 3 Striking things you learned and which you will put to work, from each message.",
-        requiresUpload: true
-      }
-    ]
-  },
-  {
-    classNumber: "4A",
-    studyMaterials: [
-      { type: "BOOK", title: "Join This Chariot", link: "#" },
-      { type: "TEXT", title: "Seven Steps to Perfecting Soulwinning", link: "#" }
-    ],
-    assignments: [
-      {
-        title: "Read the explanations of the Seven Steps to Perfecting Soulwinning",
-        requiresUpload: false
-      },
-      {
-        title: "Get your Personal Copy of “Join This Chariot”, read it, and answer the questions at end of each Chapter (in the Book).",
-        requiresUpload: true
-      },
-      {
-        title: "Reach out to 2 people and bring them to church next week. Submit their names at the next class. Note any challenge or testimony you encountered, and share with us.",
-        requiresUpload: true
-      }
-    ]
-  },
-  {
-    classNumber: 5,
-    studyMaterials: [
-      { type: "BOOK", title: "Power of Your Mind", link: "#" },
-      { type: "MESSAGE", title: "Topical Teaching Highlights on Christian Growth and Maturity", link: "#" },
-      { type: "MESSAGE", title: "Tithes and Offerings", link: "#" }
-    ],
-    assignments: [
-      {
-        title: "Get Your Personal Copy of the Book “Power of Your Mind” and read it. Discuss 2 striking thoughts you received as you studied the Book and submit. It should be at least 1 page long.",
-        requiresUpload: true
-      },
-      {
-        title: "Download from PCDL and listen to “Topical Teaching Highlights on Christian Growth and Maturity”",
-        requiresUpload: false
-      },
-      {
-        title: "Listen to the Message “Tithes and Offerings”. Sign up for at least one Partnership Arm",
-        requiresUpload: true
-      }
-    ]
-  },
-  {
-    classNumber: 6,
-    studyMaterials: [
-      { type: "TEXT", title: "Why We Must Go To Church (Pamphlet)", link: "#" },
-      { type: "MESSAGE", title: "The Church, Yesterday, Today and Forever", link: "#" }
-    ],
-    assignments: [
-      {
-        title: "Special Study on “Why We Must Go To Church” and provide answers to the questions in the Pamphlet.",
-        requiresUpload: true
-      },
-      {
-        title: "Listen to the Special Message “The Church, Yesterday, Today and Forever”",
-        requiresUpload: false
-      }
-    ]
-  }
-];
 
 const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) => {
   const {
@@ -205,7 +91,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     message: string;
   } | null>(null);
   const [assessmentAttempts, setAssessmentAttempts] = useState<{ [assessmentId: string]: boolean }>({});
-  const [essayFile, setEssayFile] = useState<File | null>(null);
+  const [assignmentFiles, setAssignmentFiles] = useState<{ [resourceId: number]: File | null }>({});
 
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
@@ -281,40 +167,9 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       try {
         const response = await axios.get(`/api/classes?id=${selectedClassId}`);
         if (response.data.success) {
-          const fetchedClassData = response.data.data;
-          // Map classResources to resources and assignments
-          const classResource = classResources.find(
-            (cr) => cr.classNumber.toString() === selectedClassId
-          );
-          const resources: ResourceData[] = classResource
-            ? classResource.studyMaterials.map((material, index) => ({
-                id: index + 1,
-                title: material.title,
-                type: material.type === 'BOOK' || material.type === 'TEXT' ? 'READ' : 'VIDEO',
-                resourceUrl: material.link,
-                order: index + 1,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              }))
-            : [];
-          const assignments: ResourceData[] = classResource
-            ? classResource.assignments.map((assignment, index) => ({
-                id: index + 1000, // Avoid ID conflicts with resources
-                title: assignment.title,
-                type: assignment.requiresUpload ? 'ESSAY' : 'ASSIGNMENT',
-                content: assignment.title,
-                order: index + 1,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              }))
-            : [];
-          setClassData({
-            ...fetchedClassData,
-            resources,
-            assignments,
-          });
-          if (fetchedClassData.videos && fetchedClassData.videos.length > 0) {
-            setSelectedVideo(fetchedClassData.videos[0]);
+          setClassData(response.data.data);
+          if (response.data.data.videos && response.data.data.videos.length > 0) {
+            setSelectedVideo(response.data.data.videos[0]);
           }
         } else {
           setError(response.data.error || 'Failed to fetch class data');
@@ -559,7 +414,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         accessedAt: new Date(),
       });
       showNotification('info', `Accessing ${resource.title}`);
-      if (resource.resourceUrl && ['VIDEO', 'LINK'].includes(resource.type)) {
+      if (resource.resourceUrl && ['VIDEO', 'LINK', 'READ'].includes(resource.type)) {
         window.open(resource.resourceUrl, '_blank');
       }
     } catch (error) {
@@ -567,13 +422,22 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     }
   };
 
-  const handleEssayUpload = async (resource: ResourceData) => {
+  const handleAssignmentUpload = async (resource: ResourceData) => {
     if (userLoading || !userId) {
       handleError('User not authenticated', new Error('User authentication pending'));
       return;
     }
-    if (!essayFile) {
+    const file = assignmentFiles[resource.id];
+    if (!file) {
       showNotification('error', 'Please select a file to upload.');
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      showNotification('error', 'Only PDF files are allowed.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('error', 'File size exceeds 5MB limit.');
       return;
     }
     try {
@@ -581,23 +445,28 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         throw new Error('Class ID missing');
       }
       const formData = new FormData();
-      formData.append('file', essayFile);
+      formData.append('file', file);
       formData.append('userId', userId);
       formData.append('classId', selectedClassId);
-      formData.append('content', essayFile.name);
+      formData.append('resourceId', resource.id.toString());
+      formData.append('content', resource.content || resource.title);
 
-      const response = await axios.post('/api/user-progress/submit-essay', formData, {
+      const response = await axios.post('/api/user-progress/submit-assignment', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (response.data.success) {
-        showNotification('success', 'Submission uploaded successfully!');
-        setEssayFile(null);
+        showNotification('success', 'Assignment submitted successfully!');
+        setAssignmentFiles(prev => ({ ...prev, [resource.id]: null }));
       } else {
-        throw new Error(response.data.error || 'Failed to submit essay');
+        throw new Error(response.data.error || 'Failed to submit assignment');
       }
     } catch (error: any) {
-      handleError(error.response?.data?.error || 'Failed to upload submission', error);
+      handleError(error.response?.data?.error || 'Failed to upload assignment', error);
     }
+  };
+
+  const handleFileChange = (resourceId: number, file: File | null) => {
+    setAssignmentFiles(prev => ({ ...prev, [resourceId]: file }));
   };
 
   const handleVideoSelect = (video: VideoData) => {
@@ -699,7 +568,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-2">
           <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary overflow-hidden backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
             <div className="relative">
               {selectedVideo ? (
@@ -787,7 +656,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         {classData.videos && classData.videos.length > 1 && (
           <div className="lg:col-span-1">
             <div className="rounded-lg border border-neutral-200 dark:border-dark-border-primary p-4 backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary">
-              <h4 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-4 text-neutral-950 dark:text-dark-text-primary">Video Playlist</h4>
+              <h4 className="desktop_h4 tablet_h4 mobile_h4 font-semibold mb-4 text-neutral-950 dark:text-dark-text-primary">Video Playlist</h4>
               <div className="space-y-2">
                 {classData.videos.map((video, index) => (
                   <button
@@ -853,28 +722,37 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                         className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold bg-primary-400 dark:bg-primary-400"
                       >
                         {resource.type === 'NOTE' ? <FileText className="w-6 h-6" /> :
-                         resource.type === 'ASSIGNMENT' ? <FileText className="w-6 h-6" /> :
                          resource.type === 'VIDEO' ? <Video className="w-6 h-6" /> :
                          resource.type === 'LINK' ? <Link2 className="w-6 h-6" /> :
-                         resource.type === 'ESSAY' ? <Upload className="w-6 h-6" /> :
                          resource.type === 'READ' ? <FileText className="w-6 h-6" /> : '📚'}
                       </div>
                       <div>
                         <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">{resource.title}</h4>
                         <p className="text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
-                          {resource.type === 'READ' ? 'Reading Material' : 'Video Resource'}
+                          {resource.type === 'READ' ? 'Reading Material' :
+                           resource.type === 'VIDEO' ? 'Video Resource' :
+                           resource.type === 'LINK' ? 'External Link' :
+                           resource.type === 'NOTE' ? 'Note' : 'Resource'}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {(resource.type === 'VIDEO' || resource.type === 'READ') && resource.resourceUrl && (
+                  {(resource.type === 'VIDEO' || resource.type === 'READ' || resource.type === 'LINK') && resource.resourceUrl && (
                     <button
                       onClick={() => handleResourceAccess(resource)}
                       className="px-4 py-2 bg-success-500 dark:bg-success-600 text-white rounded-lg hover:bg-success-600 dark:hover:bg-success-700 transition-colors desktop_paragraph tablet_paragraph mobile_paragraph"
                     >
-                      {resource.type === 'VIDEO' ? 'Watch Video' : 'Access Resource'}
+                      {resource.type === 'VIDEO' ? 'Watch Video' :
+                       resource.type === 'LINK' ? 'Visit Link' :
+                       'Access Resource'}
                     </button>
+                  )}
+
+                  {resource.type === 'NOTE' && resource.content && (
+                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
+                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{resource.content}</p>
+                    </div>
                   )}
                 </div>
               ))
@@ -902,7 +780,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                       <div>
                         <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">{assignment.title}</h4>
                         <p className="text-sm text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
-                          {assignment.type === 'ESSAY' ? 'Submission Required' : 'Assignment'}
+                          {assignment.type === 'ESSAY' || assignment.requiresUpload ? 'Submission Required' : 'Assignment'}
                         </p>
                       </div>
                     </div>
@@ -915,19 +793,21 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                     </div>
                   )}
 
-                  {assignment.type === 'ESSAY' && (
-                    <div className="mt-2 flex items-center gap-4">
+                  {(assignment.type === 'ESSAY' || assignment.type === 'ASSIGNMENT') && assignment.requiresUpload && (
+                    <div className="mt-4 flex items-center gap-4">
                       <input
                         type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={(e) => setEssayFile(e.target.files ? e.target.files[0] : null)}
-                        className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph w-full sm:w-auto"
+                        accept=".pdf"
+                        onChange={(e) => handleFileChange(assignment.id, e.target.files ? e.target.files[0] : null)}
+                        className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph"
                       />
                       <button
-                        onClick={() => handleEssayUpload(assignment)}
-                        disabled={!essayFile}
+                        onClick={() => handleAssignmentUpload(assignment)}
+                        disabled={!assignmentFiles[assignment.id]}
                         className={`px-4 py-2 text-white rounded-lg transition-colors desktop_paragraph tablet_paragraph mobile_paragraph ${
-                          essayFile ? 'bg-primary-400 dark:bg-primary-400 hover:bg-primary-500' : 'bg-neutral-400 dark:bg-neutral-500 cursor-not-allowed'
+                          assignmentFiles[assignment.id]
+                            ? 'bg-primary-400 dark:bg-primary-400 hover:bg-primary-500 dark:hover:bg-primary-500'
+                            : 'bg-neutral-400 dark:bg-neutral-500 cursor-not-allowed'
                         }`}
                       >
                         Upload Submission
@@ -956,7 +836,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                   className="p-4 rounded-lg border border-neutral-200 dark:border-dark-border-secondary bg-neutral-100 dark:bg-dark-bg-secondary"
                 >
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_h3 tablet_h3 mobile_h3">{assessment.title}</h4>
+                    <h4 className="font-medium text-neutral-950 dark:text-dark-text-primary desktop_h4 tablet_h4 mobile_h4">{assessment.title}</h4>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1 desktop_paragraph tablet_paragraph mobile_paragraph ${
                         isAssessmentLocked
