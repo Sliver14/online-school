@@ -4,27 +4,15 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ArrowRight, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '../context/UserContext';
+// import { useUser } from '../context/UserContext';
 import { Toaster, toast } from 'react-hot-toast';
 
 const Welcome = () => {
   const router = useRouter();
-  const { userId, userLoading, userError } = useUser();
+  // const { userId, userLoading, userError } = useUser();
   const [isGetStartedHovered, setIsGetStartedHovered] = useState(false);
   const [isLoginHovered, setIsLoginHovered] = useState(false);
   const [clickedButton, setClickedButton] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (userLoading) return;
-    if (userId) {
-      toast.success('Already signed in!');
-      router.replace('/');
-    }
-    if (userError) {
-      // toast.error(userError);
-      console.log(userError)
-    }
-  }, [userId, userLoading, userError, router]);
 
   const handleGetStarted = () => {
     // setClickedButton('getStarted');
@@ -35,14 +23,6 @@ const Welcome = () => {
     // setClickedButton('login');
     router.push('/auth?mode=signin');
   };
-
-  if (userLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
@@ -97,7 +77,7 @@ const Welcome = () => {
         />
 
         <div className="flex items-center justify-center text-center gap-5">
-          <h1 className="text-white text-3xl">Online Classes and Exams</h1>
+          <h1 className="text-white text-xl sm:text-2xl md:text-3xl">Online Classes and Exams</h1>
         </div>
 
         <div className="flex flex-col gap-4 mt-8 md:flex-row md:gap-8">
@@ -108,7 +88,7 @@ const Welcome = () => {
             aria-label="Get Started with LoveWorld Foundation School"
             className={`
               group relative overflow-hidden
-              flex py-4 px-8 rounded-full bg-white text-2xl text-center items-center justify-center font-bold text-black w-80 cursor-pointer
+              flex py-4 px-8 rounded-full bg-white text-lg sm:text-xl md:text-2xl text-center items-center justify-center font-bold text-black w-80 cursor-pointer
               transform transition-all duration-300 ease-out
               hover:scale-105 hover:shadow-2xl hover:shadow-white/25
               active:scale-95
@@ -131,7 +111,7 @@ const Welcome = () => {
             aria-label="Sign In to LoveWorld Foundation School"
             className={`
               group relative overflow-hidden
-              flex py-4 px-8 rounded-full bg-yellow-400 text-2xl text-center items-center justify-center font-bold text-indigo-950 w-80 cursor-pointer
+              flex py-4 px-8 rounded-full bg-yellow-400 text-lg sm:text-xl md:text-2xl text-center items-center justify-center font-bold text-indigo-950 w-80 cursor-pointer
               transform transition-all duration-300 ease-out
               hover:scale-105 hover:shadow-2xl hover:shadow-yellow-400/25
               active:scale-95

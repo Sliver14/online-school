@@ -97,7 +97,7 @@ const Examination = () => {
       return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
     }, 0);
     const overallProgress = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
-
+    console.log("Over All progress: ",overallProgress)
     if (overallProgress === 100) {
       setProgressChecked(true);
     } else {

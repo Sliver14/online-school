@@ -100,7 +100,7 @@ const OnlineSchool = () => {
     console.log('Home Page - User:', { userId, userLoading, userError, path: window.location.pathname });
     if (userLoading) return;
     if (!userId) {
-      toast('Please sign in to access the classes', { icon: 'ℹ️' });
+      // toast('Please sign in to access your classes', { icon: 'ℹ️' });
       router.replace('/welcome');
     }
     if (userError) {
