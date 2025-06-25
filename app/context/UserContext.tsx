@@ -15,6 +15,7 @@ interface UserContextType {
   userDetails: UserDetails | null;
   userLoading: boolean;
   userError: string | null;
+  logout: () => void; // add this
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -50,8 +51,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifyToken();
   }, []);
 
+  const logout = () => {
+    setUserId(null);
+    setUserDetails(null);
+    setUserError(null);
+  };
+
   return (
-    <UserContext.Provider value={{ userId, userDetails, userLoading, userError }}>
+    <UserContext.Provider value={{ userId, userDetails, userLoading, userError, logout }}>
       {children}
     </UserContext.Provider>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, Lock, Unlock } from 'lucide-react';
+import { Menu, X, Lock, Unlock, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SideBar from './components/SideBar';
 import Classes from './components/Classes';
@@ -10,8 +10,8 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { useUser } from './context/UserContext';
 import ThemeToggle from './components/ThemeToggle';
 import { Toaster, toast } from 'react-hot-toast';
+import Cookies from 'js-cookie';
 
-// ... (interface definitions remain unchanged)
 interface Question {
   id: number;
   question: string;
@@ -58,6 +58,7 @@ interface ClassData {
   resources: ResourceData[];
 }
 
+// const { logout } = useUser();
 const capitalize = (str: string | undefined) => {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -77,16 +78,29 @@ const OnlineSchool = () => {
     assessmentCompleted,
   } = useAppContext();
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null); // ✅ correct
   const renderCount = useRef(0);
-  const { userId, userDetails, userLoading, userError } = useUser();
+  const { userId, userDetails, userLoading, userError, logout } = useUser();
   const router = useRouter();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Redirect unauthenticated users
   useEffect(() => {
     console.log('Home Page - User:', { userId, userLoading, userError, path: window.location.pathname });
     if (userLoading) return;
     if (!userId) {
-      toast('Please sign in to access the dashboard', { icon: 'ℹ️' });
+      toast('Please sign in to access the classes', { icon: 'ℹ️' });
       router.replace('/welcome');
     }
     if (userError) {
@@ -99,21 +113,18 @@ const OnlineSchool = () => {
     const storedClassId = sessionStorage.getItem('selectedClassId');
     if (storedClassId && !selectedClassId) {
       setSelectedClassId(storedClassId);
-      setActiveTab(''); // Ensure no tab is active in ClassView
+      setActiveTab('');
     }
   }, [setSelectedClassId, setActiveTab]);
 
   // Push history state when entering ClassView and listen for popstate
   useEffect(() => {
     if (selectedClassId) {
-      // Push a new state to the history when entering ClassView
       window.history.pushState({ view: 'classView', classId: selectedClassId }, '', `/class/${selectedClassId}`);
     }
 
-    // Handle popstate event (browser back/forward)
     const handlePopState = (event: PopStateEvent) => {
       if (!event.state || event.state.view !== 'classView') {
-        // If navigating back from ClassView, trigger the onBack logic
         setSelectedClassId(null);
         setActiveTab('classes');
         sessionStorage.removeItem('selectedClassId');
@@ -121,8 +132,6 @@ const OnlineSchool = () => {
     };
 
     window.addEventListener('popstate', handlePopState);
-
-    // Cleanup event listener on component unmount
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
@@ -162,6 +171,28 @@ const OnlineSchool = () => {
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  // const handleUpdateProfile = () => {
+  //   setDropdownOpen(false);
+  //   router.push('/profile');
+  // };
+
+  const handleLogout = async () => {
+    setDropdownOpen(false);
+    try {
+      Cookies.remove('authToken', { path: '/' });
+      logout(); // Clear context state
+      toast.success('Logged out successfully');
+      router.replace('/welcome');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Logout failed');
+    }
   };
 
   const renderClasses = () => (
@@ -262,7 +293,6 @@ const OnlineSchool = () => {
             setSelectedClassId(null);
             setActiveTab('classes');
             sessionStorage.removeItem('selectedClassId');
-            // Optionally, go back in history to remove the ClassView state
             window.history.back();
           }}
         />
@@ -296,14 +326,43 @@ const OnlineSchool = () => {
                 Welcome Back, {displayFirstName}!
               </h2>
             </div>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-primary-400 dark:bg-primary-400">
-                {initials}
+            <div className="flex items-center gap-3 relative" ref={dropdownRef}>
+              <div className="flex items-center gap-2 cursor-pointer" onClick={toggleDropdown}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-primary-400 dark:bg-primary-400">
+                  {initials}
+                </div>
+                <span className="hidden sm:inline desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-950 dark:text-dark-text-primary">
+                  {displayFirstName} {displayLastName}
+                </span>
+                <ChevronDown className="w-4 h-4 text-neutral-950 dark:text-dark-text-primary" />
               </div>
-              <span className="hidden sm:inline desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-950 dark:text-dark-text-primary">
-                {displayFirstName} {displayLastName}
-              </span>
+              {dropdownOpen && (
+                <div className="absolute right-0 top-12 w-48 rounded-lg shadow-lg bg-neutral-50 dark:bg-dark-bg-tertiary border border-neutral-100 dark:border-dark-border-primary z-50">
+                  <ul className="py-2">
+                    <li
+                      className="flex items-center gap-2 px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
+                      onClick={() => {
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      {/* Toggle Theme */}
+                      Toggle <ThemeToggle />
+                    </li>
+                    {/* <li
+                      className="px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
+                      onClick={handleUpdateProfile}
+                    >
+                      Update Profile
+                    </li> */}
+                    <li
+                      className="px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </header>
