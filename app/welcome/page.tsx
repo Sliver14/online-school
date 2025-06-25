@@ -97,7 +97,7 @@ const Welcome = () => {
         />
 
         <div className="flex items-center justify-center text-center gap-5">
-          <h1 className="text-white text-3xl">Online Class and Exams</h1>
+          <h1 className="text-white text-3xl">Online Classes and Exams</h1>
         </div>
 
         <div className="flex flex-col gap-4 mt-8 md:flex-row md:gap-8">

@@ -309,7 +309,7 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
         initializeProgress({
           videoWatched: { [selectedClassId]: true },
         });
-        showNotification('success', 'Video completed! No more classes to unlock.');
+        showNotification('success', 'Congratulations! you have completed all Videos.');
       }
     } catch (error) {
       handleError('Failed to save video progress', error);
@@ -398,29 +398,11 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
     }
   };
 
-  const handleResourceAccess = async (resource: ResourceData) => {
-    if (userLoading || !userId) {
-      handleError('User not authenticated', new Error('User authentication pending'));
-      return;
-    }
-    try {
-      if (!selectedClassId) {
-        throw new Error('Class ID missing');
-      }
-      await axios.post('/api/user-progress/resource-access', {
-        userId,
-        classId: selectedClassId,
-        resourceId: resource.id,
-        accessedAt: new Date(),
-      });
-      showNotification('info', `Accessing ${resource.title}`);
-      if (resource.resourceUrl && ['VIDEO', 'LINK', 'READ'].includes(resource.type)) {
-        window.open(resource.resourceUrl, '_blank');
-      }
-    } catch (error) {
-      handleError('Failed to access resource', error);
-    }
-  };
+const handleResourceAccess = (resource: ResourceData) => {
+  if (resource.resourceUrl && ['VIDEO', 'LINK', 'READ'].includes(resource.type)) {
+    window.open(resource.resourceUrl, '_blank');
+  }
+};
 
   const handleAssignmentSubmit = async (resource: ResourceData) => {
     if (userLoading || !userId) {
@@ -780,10 +762,11 @@ const ClassView: React.FC<ClassViewProps> = ({ classId: _propClassId, onBack }) 
                   </div>
 
                   {assignment.content && (
-                    <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
-                      <p className="font-semibold text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">Instructions:</p>
-                      <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Submit assessemnt here</p>
-                    </div>
+                    // <div className="mt-2 p-3 bg-neutral-50 dark:bg-dark-bg-tertiary rounded-lg">
+                    //   <p className="font-semibold text-neutral-950 dark:text-dark-text-primary desktop_paragraph tablet_paragraph mobile_paragraph">Instructions:</p>
+                    //   <p className="text-neutral-700 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{assignment.content}</p>
+                    // </div>
+                    <></>
                   )}
 
                   {(assignment.type === 'ESSAY' || assignment.type === 'ASSIGNMENT') && assignment.requiresUpload && (

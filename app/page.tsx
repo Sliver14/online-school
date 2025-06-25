@@ -11,6 +11,7 @@ import { useUser } from './context/UserContext';
 import ThemeToggle from './components/ThemeToggle';
 import { Toaster, toast } from 'react-hot-toast';
 
+// ... (interface definitions remain unchanged)
 interface Question {
   id: number;
   question: string;
@@ -101,6 +102,31 @@ const OnlineSchool = () => {
       setActiveTab(''); // Ensure no tab is active in ClassView
     }
   }, [setSelectedClassId, setActiveTab]);
+
+  // Push history state when entering ClassView and listen for popstate
+  useEffect(() => {
+    if (selectedClassId) {
+      // Push a new state to the history when entering ClassView
+      window.history.pushState({ view: 'classView', classId: selectedClassId }, '', `/class/${selectedClassId}`);
+    }
+
+    // Handle popstate event (browser back/forward)
+    const handlePopState = (event: PopStateEvent) => {
+      if (!event.state || event.state.view !== 'classView') {
+        // If navigating back from ClassView, trigger the onBack logic
+        setSelectedClassId(null);
+        setActiveTab('classes');
+        sessionStorage.removeItem('selectedClassId');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [selectedClassId, setSelectedClassId, setActiveTab]);
 
   useEffect(() => {
     renderCount.current += 1;
@@ -236,6 +262,8 @@ const OnlineSchool = () => {
             setSelectedClassId(null);
             setActiveTab('classes');
             sessionStorage.removeItem('selectedClassId');
+            // Optionally, go back in history to remove the ClassView state
+            window.history.back();
           }}
         />
       );
