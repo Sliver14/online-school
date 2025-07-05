@@ -66,7 +66,7 @@ interface Result {
 const Examination = () => {
   const router = useRouter();
   const { userDetails } = useUser();
-  const { classes, videoWatched, assessmentCompleted } = useAppContext();
+  const { classes, videoWatched, assessmentCompleted, initializeProgress, setClasses } = useAppContext();
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,15 +77,111 @@ const Examination = () => {
   const [resultLoading, setResultLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(3600); // 1 hour in seconds
   const [progressChecked, setProgressChecked] = useState(false);
+  const [progressDataLoaded, setProgressDataLoaded] = useState(false); // NEW: Track if progress data is loaded
 
-  // Check user progress and protect route
+  // NEW: Load classes and progress data for examination page
+  useEffect(() => {
+    const loadClassesAndProgressData = async () => {
+      if (!userDetails?.id) return;
+
+      try {
+        console.log('Loading classes and progress data for examination page...');
+        
+        // First, load classes if they're not already loaded
+        let classesToUse = classes;
+        if (classes.length === 0) {
+          console.log('Classes not loaded, fetching classes...');
+          const classesResponse = await fetch('/api/classes');
+          const classesData = await classesResponse.json();
+          if (classesData.success) {
+            classesToUse = classesData.data;
+            console.log('Classes loaded:', classesToUse.length);
+          } else {
+            throw new Error('Failed to load classes');
+          }
+        }
+        
+        // Load video progress for all classes
+        const videoProgressPromises = classesToUse.map(async (classItem: any) => {
+          try {
+            const response = await fetch(`/api/user-progress/video-watched?userId=${userDetails.id}&classId=${classItem.id}`);
+            const data = await response.json();
+            return {
+              classId: classItem.id.toString(),
+              watched: data.success && data.data.length > 0 && data.data.some((progress: any) => progress.watchedAt),
+            };
+          } catch (err) {
+            console.error(`Error fetching video progress for class ${classItem.id}:`, err);
+            return { classId: classItem.id.toString(), watched: false };
+          }
+        });
+
+        const videoProgress = await Promise.all(videoProgressPromises);
+        const videoWatchedMap = videoProgress.reduce((acc, { classId, watched }) => ({
+          ...acc,
+          [classId]: watched,
+        }), {});
+
+        // Load assessment progress for all classes
+        const assessmentPromises = classesToUse.flatMap((classItem: any) =>
+          classItem.assessments.map(async (assessment: any) => {
+            try {
+              const response = await fetch(`/api/user-progress/assessment-results/${assessment.id}?userId=${userDetails.id}`);
+              const data = await response.json();
+              return {
+                assessmentId: assessment.id.toString(),
+                isPassed: data.success ? data.data.isPassed : false,
+              };
+            } catch (err) {
+              console.error(`Error fetching assessment ${assessment.id} results:`, err);
+              return { assessmentId: assessment.id.toString(), isPassed: false };
+            }
+          })
+        );
+
+        const assessmentResults = await Promise.all(assessmentPromises);
+        const assessmentCompletedMap = assessmentResults.reduce((acc, { assessmentId, isPassed }) => ({
+          ...acc,
+          [assessmentId]: isPassed,
+        }), {});
+
+        console.log('Progress data loaded:', { 
+          classesCount: classesToUse.length,
+          videoWatchedMap, 
+          assessmentCompletedMap 
+        });
+        
+        // Update the context with the loaded data
+        setClasses(classesToUse);
+        initializeProgress({
+          videoWatched: videoWatchedMap,
+          assessmentCompleted: assessmentCompletedMap,
+        });
+        
+        setProgressDataLoaded(true);
+      } catch (err) {
+        console.error('Error loading classes and progress data:', err);
+        setError('Failed to load data');
+      }
+    };
+
+    loadClassesAndProgressData();
+  }, [userDetails?.id, classes, initializeProgress, setClasses]);
+
+  // Check user progress and protect route - UPDATED LOGIC
   useEffect(() => {
     if (!userDetails?.id) {
       router.push('/auth?mode=signin');
       return;
     }
 
-    // Calculate overall progress
+    // Wait for classes and progress data to be loaded
+    if (classes.length === 0 || !progressDataLoaded) {
+      console.log('Waiting for data to load...', { classesLength: classes.length, progressDataLoaded });
+      return;
+    }
+
+    // Calculate overall progress - SAME LOGIC AS MAIN PAGE
     const totalClasses = classes.length;
     const completedClasses = classes.reduce((count, classItem) => {
       const classId = classItem.id.toString();
@@ -97,18 +193,27 @@ const Examination = () => {
       return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
     }, 0);
     const overallProgress = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
-    console.log("Over All progress: ",overallProgress)
+    
+    console.log('Examination Page - Progress Check:', {
+      totalClasses,
+      completedClasses,
+      overallProgress,
+      videoWatched,
+      assessmentCompleted
+    });
+
     if (overallProgress === 100) {
       setProgressChecked(true);
     } else {
-      setError('Complete all classes to access the exam');
+      setError(`Complete all classes to access the exam. Current progress: ${overallProgress}%`);
       router.push('/');
     }
-  }, [userDetails, classes, videoWatched, assessmentCompleted, router]);
+  }, [userDetails, classes, videoWatched, assessmentCompleted, progressDataLoaded, router]);
 
-  // Fetch exam data
+  // Fetch exam data - UPDATED TO WAIT FOR PROGRESS CHECK
   useEffect(() => {
     if (!progressChecked) return;
+    
     const fetchExam = async () => {
       try {
         const response = await fetch('/api/exam');
@@ -202,10 +307,29 @@ const Examination = () => {
     ? exam.questions.every((question) => answers[question.id] !== undefined)
     : false;
 
+  // UPDATED LOADING CONDITIONS
+  if (!progressDataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 border-primary-400 dark:border-primary-400"></div>
+          <p className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted">
+            Loading your progress data...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!progressChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-100 dark:bg-dark-bg-primary">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-400 dark:border-primary-400"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 border-primary-400 dark:border-primary-400"></div>
+          <p className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted">
+            Verifying your progress...
+          </p>
+        </div>
       </div>
     );
   }
