@@ -104,6 +104,11 @@ const Examination = () => {
         // Load video progress for all classes
         const videoProgressPromises = classesToUse.map(async (classItem: any) => {
           try {
+            // Add null check for classItem.id
+            if (!classItem || classItem.id == null) {
+              return { classId: '', watched: false };
+            }
+            
             const response = await fetch(`/api/user-progress/video-watched?userId=${userDetails.id}&classId=${classItem.id}`);
             const data = await response.json();
             return {
@@ -112,7 +117,7 @@ const Examination = () => {
             };
           } catch (err) {
             console.error(`Error fetching video progress for class ${classItem.id}:`, err);
-            return { classId: classItem.id.toString(), watched: false };
+            return { classId: classItem.id?.toString() || '', watched: false };
           }
         });
 
@@ -126,6 +131,11 @@ const Examination = () => {
         const assessmentPromises = classesToUse.flatMap((classItem: any) =>
           classItem.assessments.map(async (assessment: any) => {
             try {
+              // Add null check for assessment.id
+              if (!assessment || assessment.id == null) {
+                return { assessmentId: '', isPassed: false };
+              }
+              
               const response = await fetch(`/api/user-progress/assessment-results/${assessment.id}?userId=${userDetails.id}`);
               const data = await response.json();
               return {
@@ -134,7 +144,7 @@ const Examination = () => {
               };
             } catch (err) {
               console.error(`Error fetching assessment ${assessment.id} results:`, err);
-              return { assessmentId: assessment.id.toString(), isPassed: false };
+              return { assessmentId: assessment.id?.toString() || '', isPassed: false };
             }
           })
         );
@@ -184,11 +194,18 @@ const Examination = () => {
     // Calculate overall progress - SAME LOGIC AS MAIN PAGE
     const totalClasses = classes.length;
     const completedClasses = classes.reduce((count, classItem) => {
+      // Add null check for classItem.id
+      if (!classItem || classItem.id == null) return count;
+      
       const classId = classItem.id.toString();
       const isVideoWatched = videoWatched[classId];
       const allAssessmentsCompleted =
         classItem.assessments.length > 0
-          ? classItem.assessments.every((assessment) => assessmentCompleted[assessment.id.toString()])
+          ? classItem.assessments.every((assessment) => {
+              // Add null check for assessment.id
+              if (!assessment || assessment.id == null) return false;
+              return assessmentCompleted[assessment.id.toString()];
+            })
           : true;
       return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
     }, 0);

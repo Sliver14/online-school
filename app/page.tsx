@@ -151,11 +151,18 @@ const OnlineSchool = () => {
 
   const totalClasses = classes.length;
   const completedClasses = classes.reduce((count, classItem) => {
+    // Add null check for classItem.id
+    if (!classItem || classItem.id == null) return count;
+    
     const classId = classItem.id.toString();
     const isVideoWatched = videoWatched[classId];
     const allAssessmentsCompleted =
       classItem.assessments.length > 0
-        ? classItem.assessments.every((assessment) => assessmentCompleted[assessment.id.toString()])
+        ? classItem.assessments.every((assessment) => {
+            // Add null check for assessment.id
+            if (!assessment || assessment.id == null) return false;
+            return assessmentCompleted[assessment.id.toString()];
+          })
         : true;
     return isVideoWatched && allAssessmentsCompleted ? count + 1 : count;
   }, 0);

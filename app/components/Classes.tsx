@@ -91,24 +91,36 @@ const Classes: React.FC = () => {
   }, [userProgress, initializeProgress]);
 
   const getClassStatus = (classItem: any, index: number) => {
+    // Add null check for classItem.id
+    if (!classItem || classItem.id == null) {
+      return { locked: true, reason: 'Invalid class data' };
+    }
+    
     const classId = classItem.id.toString();
     const isVideoWatched = userProgress?.videoWatched[classId] || false;
     const allAssessmentsCompleted = classItem.assessments.length > 0
-      ? classItem.assessments.every((assessment: any) => 
-          userProgress?.assessmentCompleted[assessment.id.toString()]
-        )
+      ? classItem.assessments.every((assessment: any) => {
+          // Add null check for assessment.id
+          if (!assessment || assessment.id == null) return false;
+          return userProgress?.assessmentCompleted[assessment.id.toString()];
+        })
       : true;
     const isCompleted = isVideoWatched && allAssessmentsCompleted;
 
     // Check if previous class is completed
     const previousClass = index > 0 ? classes[index - 1] : null;
     const isPreviousCompleted = !previousClass || (() => {
+      // Add null check for previousClass.id
+      if (!previousClass || previousClass.id == null) return false;
+      
       const prevClassId = previousClass.id.toString();
       const prevVideoWatched = userProgress?.videoWatched[prevClassId] || false;
       const prevAssessmentsCompleted = previousClass.assessments.length > 0
-        ? previousClass.assessments.every((assessment: any) => 
-            userProgress?.assessmentCompleted[assessment.id.toString()]
-          )
+        ? previousClass.assessments.every((assessment: any) => {
+            // Add null check for assessment.id
+            if (!assessment || assessment.id == null) return false;
+            return userProgress?.assessmentCompleted[assessment.id.toString()];
+          })
         : true;
       return prevVideoWatched && prevAssessmentsCompleted;
     })();
@@ -201,12 +213,19 @@ const Classes: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.map((classItem, index) => {
+          // Add null check for classItem.id
+          if (!classItem || classItem.id == null) {
+            return null; // Skip invalid class items
+          }
+          
           const classId = classItem.id.toString();
           const isVideoWatched = userProgress?.videoWatched[classId] || false;
           const allAssessmentsCompleted = classItem.assessments.length > 0
-            ? classItem.assessments.every((assessment: any) => 
-                userProgress?.assessmentCompleted[assessment.id.toString()]
-              )
+            ? classItem.assessments.every((assessment: any) => {
+                // Add null check for assessment.id
+                if (!assessment || assessment.id == null) return false;
+                return userProgress?.assessmentCompleted[assessment.id.toString()];
+              })
             : true;
           const isCompleted = isVideoWatched && allAssessmentsCompleted;
           const isLocked = getClassStatus(classItem, index);

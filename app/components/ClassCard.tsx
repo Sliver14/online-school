@@ -41,10 +41,14 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
   };
 
   // Check if class is completed
-  const classId = classItem.id.toString();
+  const classId = classItem?.id?.toString() || '';
   const isVideoWatched = videoWatched[classId];
   const allAssessmentsCompleted = classItem.assessments.length > 0
-    ? classItem.assessments.every((assessment) => assessmentCompleted[assessment.id.toString()])
+    ? classItem.assessments.every((assessment) => {
+        // Add null check for assessment.id
+        if (!assessment || assessment.id == null) return false;
+        return assessmentCompleted[assessment.id.toString()];
+      })
     : true;
   const isCompleted = isVideoWatched && allAssessmentsCompleted;
 
@@ -56,7 +60,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
           : 'cursor-pointer hover:-translate-y-1 hover:shadow-lg bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700'
       } ${isCompleted && !isLocked.locked ? 'ring-2 ring-green-200 dark:ring-green-800' : ''}`}
       onClick={() => {
-        if (!isLocked.locked) {
+        if (!isLocked.locked && classItem?.id != null) {
           setSelectedClassId(classItem.id.toString());
           setActiveTab('');
           sessionStorage.setItem('selectedClassId', classItem.id.toString());

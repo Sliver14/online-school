@@ -21,18 +21,28 @@ const fetchUserProgress = async (userId: string): Promise<UserProgress> => {
   const timers = timerResponse.data.success ? timerResponse.data.data : [];
   const videos = videoResponse.data.success ? videoResponse.data.data : [];
 
-  const classTimers = timers.reduce((acc: { [key: string]: ClassTimer }, timer: any) => ({
-    ...acc,
-    [timer.classId.toString()]: {
-      timerExpiresAt: timer.timerExpiresAt,
-      timerActive: timer.timerActive,
-    },
-  }), {});
+  const classTimers = timers.reduce((acc: { [key: string]: ClassTimer }, timer: any) => {
+    if (timer && timer.classId != null) {
+      return {
+        ...acc,
+        [timer.classId.toString()]: {
+          timerExpiresAt: timer.timerExpiresAt,
+          timerActive: timer.timerActive,
+        },
+      };
+    }
+    return acc;
+  }, {});
 
-  const videoWatched = videos.reduce((acc: { [key: string]: boolean }, video: any) => ({
-    ...acc,
-    [video.classId.toString()]: video.watched,
-  }), {});
+  const videoWatched = videos.reduce((acc: { [key: string]: boolean }, video: any) => {
+    if (video && video.video && video.video.classId != null) {
+      return {
+        ...acc,
+        [video.video.classId.toString()]: !!video.watchedAt,
+      };
+    }
+    return acc;
+  }, {});
 
   return {
     classTimers,
