@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, Lock, Unlock, ChevronDown } from 'lucide-react';
+import { Menu, X, Lock, Unlock, ChevronDown, Book, TrendingUp, CheckCircle, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SideBar from './components/SideBar';
 import Classes from './components/Classes';
@@ -204,15 +204,32 @@ const OnlineSchool = () => {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[
-            { value: totalClasses.toString(), label: 'Total Classes', color: 'secondary-500' },
-            { value: `${overallProgress}%`, label: 'Overall Progress', color: 'success-500' },
+            {
+              value: totalClasses.toString(),
+              label: 'Total Classes',
+              color: 'secondary-500',
+              icon: <Book className="w-12 h-12 text-secondary-500" />,
+            },
+            {
+              value: `${overallProgress}%`,
+              label: 'Overall Progress',
+              color: 'success-500',
+              icon: <TrendingUp className="w-12 h-12 text-success-500" />,
+            },
           ].map((stat, index) => (
             <div
               key={index}
               className="p-6 rounded-xl border border-neutral-100 dark:border-dark-border-primary backdrop-blur-sm bg-neutral-50 dark:bg-dark-bg-tertiary"
             >
-              <div className={`desktop_h3 tablet_h3 mobile_h3 font-bold mb-2 text-${stat.color}`}>{stat.value}</div>
-              <div className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted">{stat.label}</div>
+              <div className="flex items-center">
+                <div className="flex-shrink-0 flex items-center justify-center mr-4">
+                  {stat.icon}
+                </div>
+                <div className="flex flex-col justify-center">
+                  <div className={`font-bold text-2xl md:text-3xl text-${stat.color}`}>{stat.value}</div>
+                  <div className="desktop_paragraph tablet_paragraph mobile_paragraph text-neutral-500 dark:text-dark-text-muted mt-1">{stat.label}</div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
