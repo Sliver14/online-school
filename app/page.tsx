@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, Lock, Unlock, ChevronDown, Book, TrendingUp, CheckCircle, Calendar } from 'lucide-react';
+import { Menu, X, Lock, Unlock, ChevronDown, Book, TrendingUp, CheckCircle, Calendar, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SideBar from './components/SideBar';
 import Classes from './components/Classes';
@@ -357,20 +357,17 @@ const OnlineSchool = () => {
                 <div className="absolute right-0 top-12 w-48 rounded-lg shadow-lg bg-neutral-50 dark:bg-dark-bg-tertiary border border-neutral-100 dark:border-dark-border-primary z-50">
                   <ul className="py-2">
                     <li
-                      className="flex items-center gap-2 px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
+                      className="flex items-center justify-between px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
                       onClick={() => {
                         setDropdownOpen(false);
                       }}
                     >
-                      {/* Toggle Theme */}
-                      Toggle <ThemeToggle />
+                      <span className="flex items-center gap-2">
+                        <Sun className="w-4 h-4" />
+                        Dark Mode
+                      </span>
+                      <ThemeToggle />
                     </li>
-                    {/* <li
-                      className="px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
-                      onClick={handleUpdateProfile}
-                    >
-                      Update Profile
-                    </li> */}
                     <li
                       className="px-4 py-2 text-neutral-950 dark:text-dark-text-primary hover:bg-neutral-100 dark:hover:bg-dark-bg-secondary cursor-pointer desktop_paragraph tablet_paragraph mobile_paragraph"
                       onClick={handleLogout}
