@@ -66,7 +66,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
       {/* Header with image background */}
       <div className="relative h-20 flex items-center justify-center text-white">
         <img
-          src="/class-card.jpg"
+          src="/class-card.jpeg"
           alt="Class Card Header"
           className="absolute inset-0 w-full h-full object-cover object-center"
           style={{ zIndex: 0 }}
@@ -97,11 +97,11 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
             <Lock className="w-3 h-3" />
           </div>
         )} */}
-        {isCompleted && !isLocked.locked && (
+        {/* {isCompleted && !isLocked.locked && (
           <div className="absolute top-2 right-2 flex items-center gap-1 bg-green-500 text-white text-xs px-2 py-1 rounded-full z-20">
             <CheckCircle className="w-3 h-3" />
           </div>
-        )}
+        )} */}
         {/* Timer indicator */}
         {timer !== null && timer > 0 && !isLocked.locked && (
           <div className="absolute top-2 left-2 flex items-center gap-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-full z-20">
