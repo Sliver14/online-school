@@ -5,7 +5,7 @@ import { Menu, X, Lock, Unlock, ChevronDown, Book, TrendingUp, CheckCircle, Cale
 import { useRouter } from 'next/navigation';
 import SideBar from './components/SideBar';
 import Classes from './components/Classes';
-import ClassView from './components/ClassView';
+import { LazyClassView } from './components/LazyComponents';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { useUser } from './context/UserContext';
 import ThemeToggle from './components/ThemeToggle';
@@ -304,7 +304,7 @@ const OnlineSchool = () => {
 
     if (selectedClassId) {
       return (
-        <ClassView
+        <LazyClassView
           classId={selectedClassId}
           onBack={() => {
             setSelectedClassId(null);

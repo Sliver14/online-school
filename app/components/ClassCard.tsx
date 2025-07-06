@@ -87,7 +87,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
           ) : (
             <Play className="w-5 h-5 text-blue-200" />
           )}
-          <span className="text-center px-4 text-lg font-medium drop-shadow">
+          <span className="text-center px-4 text-xl font-bold drop-shadow">
             {classItem.classNumber || `Class ${index + 1}`}
           </span>
         </div>
