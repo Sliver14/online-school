@@ -71,7 +71,7 @@ interface AppContextType {
     assessmentCompleted?: { [assessmentId: string]: boolean };
   }) => void;
   handleVideoComplete: (classId: string, videoId?: number) => Promise<HandleVideoCompleteResponse>;
-  handleAssessmentComplete: (assessmentId: string, answers: Record<string, number>) => Promise<void>;
+  handleAssessmentComplete: (assessmentId: string, answers: Record<string, number>) => Promise<any>;
   invalidateProgressCache: () => void;
 }
 
@@ -191,17 +191,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (userLoading) {
         console.log('Waiting for user authentication...');
         toast('ℹ️ Please wait while we verify your session');
-        return;
+        return null;
       }
       if (userError || !userId) {
         console.error('User error or not authenticated:', userError);
         toast.error(userError || 'Please sign in to mark assessment as completed');
-        return;
+        return null;
       }
       if (!selectedClassId) {
         console.error('No class selected');
         toast.error('No class selected');
-        return;
+        return null;
       }
 
       try {
@@ -213,17 +213,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (response.data.success) {
           setAssessmentCompleted((prev) => ({ ...prev, [assessmentId]: response.data.isPassed }));
           console.log(`Assessment marked as completed for ${assessmentId}`);
-          toast.success(response.data.message || 'Assessment progress saved');
           
           // Invalidate cache after assessment completion
           invalidateProgressCache();
+          
+          // Return the assessment results for the modal
+          return {
+            score: response.data.score,
+            correctAnswers: response.data.correctAnswers,
+            totalQuestions: response.data.totalQuestions,
+            isPassed: response.data.isPassed,
+            canRetake: response.data.canRetake,
+            attemptCount: response.data.attemptCount,
+            answers: answers,
+            detailedResults: response.data.detailedResults || [],
+            completedAt: new Date().toISOString()
+          };
         } else {
           console.error('Failed to mark assessment as completed:', response.data.error);
           toast.error(response.data.message || 'Failed to save assessment progress');
+          return null;
         }
       } catch (err) {
         console.error('Error marking assessment as completed:', err);
         toast.error('Error saving assessment progress');
+        return null;
       }
     },
     [userId, userLoading, userError, selectedClassId, invalidateProgressCache]

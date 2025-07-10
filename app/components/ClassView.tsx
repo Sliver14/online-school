@@ -924,8 +924,22 @@ const handleResourceAccess = (resource: ResourceData) => {
           assessment={selectedAssessment}
           onComplete={async (answers: Record<string, number>) => {
             if (selectedAssessment) {
-              await handleAssessmentComplete(selectedAssessment.id.toString(), answers);
-              await handleViewResults(selectedAssessment);
+              try {
+                const results = await handleAssessmentComplete(selectedAssessment.id.toString(), answers);
+                if (results) {
+                  // Set the results directly in the modal
+                  setAssessmentResults(results);
+                } else {
+                  // If no results returned, fetch them
+                  await handleViewResults(selectedAssessment);
+                }
+              } catch (error) {
+                console.error('Error completing assessment:', error);
+                // If there's an error, close the modal and show error
+                setIsAssessmentModalOpen(false);
+                setSelectedAssessment(null);
+                showNotification('error', 'Failed to submit assessment. Please try again.');
+              }
             }
           }}
           assessmentResults={assessmentResults}

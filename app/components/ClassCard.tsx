@@ -155,8 +155,6 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
                 ? 'text-gray-400 dark:text-gray-500' 
                 : 'text-gray-500 dark:text-gray-400'
             }`}>
-              <span className="w-4 h-4">📝</span>
-              <span>{classItem.assessments.length} assessment{classItem.assessments.length > 1 ? 's' : ''}</span>
             </div>
           )}
         </div>

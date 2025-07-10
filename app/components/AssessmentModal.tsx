@@ -51,7 +51,8 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
 }) => {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [mode, setMode] = useState<'taking' | 'results'>('taking');
+  const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<'taking' | 'loading' | 'results'>('taking');
 
   useEffect(() => {
     if (isOpen && assessment?.questions) {
@@ -59,6 +60,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         console.log('Initializing results mode:', assessmentResults);
         setMode('results');
         setIsSubmitted(true);
+        setIsLoading(false);
         // Initialize answers from results
         setAnswers(assessmentResults.answers || {});
       } else {
@@ -66,9 +68,21 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         setMode('taking');
         setAnswers({});
         setIsSubmitted(false);
+        setIsLoading(false);
       }
     }
   }, [isOpen, assessment?.questions, assessmentResults]);
+
+  // Watch for assessment results when in loading mode
+  useEffect(() => {
+    if (mode === 'loading' && assessmentResults) {
+      console.log('Transitioning from loading to results:', assessmentResults);
+      setMode('results');
+      setIsLoading(false);
+      setIsSubmitted(true);
+      setAnswers(assessmentResults.answers || {});
+    }
+  }, [mode, assessmentResults]);
 
   const handleAnswerChange = (questionId: number, optionIndex: number) => {
     console.log('Answer changed:', { questionId, optionIndex });
@@ -80,13 +94,15 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
 
   const handleSubmit = async () => {
     console.log('Submitting assessment:', { answers, mode });
-    setIsSubmitted(true);
-    setMode('results');
+    setIsLoading(true);
+    setMode('loading');
     try {
       await onComplete(answers);
+      // The onComplete function should handle setting the results
+      // We don't need to manually set mode to 'results' here
     } catch (error) {
       console.error('Error submitting assessment:', error);
-      setIsSubmitted(false);
+      setIsLoading(false);
       setMode('taking');
     }
   };
@@ -96,6 +112,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
     setMode('taking');
     setAnswers({});
     setIsSubmitted(false);
+    setIsLoading(false);
     onClose();
   };
 
@@ -195,6 +212,18 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
     </div>
   );
 
+  const renderLoading = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
+      <h3 className="text-xl font-semibold mb-2" style={{ color: colors.text }}>
+        Calculating Your Score...
+      </h3>
+      <p className="text-sm" style={{ color: colors.textMuted }}>
+        Please wait while we process your assessment.
+      </p>
+    </div>
+  );
+
   const renderQuestions = () => (
     <div className="pt-4 px-6">
       <div className="mb-6">
@@ -285,11 +314,13 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold" style={{ color: colors.text }}>
-                {assessment.title}{mode === 'results' ? ' - Results' : ''}
+                {assessment.title}{mode === 'results' ? ' - Results' : mode === 'loading' ? ' - Processing' : ''}
               </h2>
               <p className="text-sm" style={{ color: colors.textMuted }}>
                 {mode === 'results'
                   ? `Attempt #${assessmentResults?.attemptCount || 1} • Completed: ${assessmentResults?.completedAt ? new Date(assessmentResults.completedAt).toLocaleDateString() : 'N/A'}`
+                  : mode === 'loading'
+                  ? 'Calculating your score...'
                   : `${assessment.questions.length} Questions`}
               </p>
             </div>
@@ -304,7 +335,7 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
         </div>
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto pt-20 px-6">
-          {mode === 'results' ? renderResults() : renderQuestions()}
+          {mode === 'results' ? renderResults() : mode === 'loading' ? renderLoading() : renderQuestions()}
         </div>
       </div>
     </div>
