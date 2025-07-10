@@ -91,18 +91,6 @@ const Classes: React.FC = () => {
     }
   }, [userProgress, initializeProgress]);
 
-  // Debug logging
-  useEffect(() => {
-    if (userProgress && classes.length > 0) {
-      console.log('=== DEBUG: Classes and Progress Data ===');
-      console.log('Classes:', classes.map(c => ({ id: c.id, title: c.title })));
-      console.log('Video Watched:', userProgress.videoWatched);
-      console.log('Assessment Completed:', userProgress.assessmentCompleted);
-      console.log('Class Timers:', userProgress.classTimers);
-      console.log('=====================================');
-    }
-  }, [userProgress, classes]);
-
   // Periodic cache refresh to ensure real-time updates
   useEffect(() => {
     if (!userId) return;
@@ -301,90 +289,7 @@ const Classes: React.FC = () => {
           <div className="w-1 h-8 rounded bg-primary-400 dark:bg-primary-400"></div>
           My Classes
         </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              invalidateProgressCache();
-              console.log('Manual cache refresh triggered');
-            }}
-            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors text-sm"
-          >
-            🔄 Refresh
-          </button>
-          <button
-            onClick={async () => {
-              if (userId) {
-                try {
-                  const response = await fetch(`/api/user-progress/assessment-results?userId=${userId}`);
-                  const data = await response.json();
-                  console.log('Assessment results API response:', data);
-                } catch (error) {
-                  console.error('Error fetching assessment results:', error);
-                }
-              }
-            }}
-            className="px-4 py-2 bg-secondary-500 text-white rounded-lg hover:bg-secondary-600 transition-colors text-sm"
-          >
-            🧪 Test API
-          </button>
-          <button
-            onClick={async () => {
-              if (userId) {
-                try {
-                  const response = await fetch(`/api/user-progress/video-watched?userId=${userId}`);
-                  const data = await response.json();
-                  console.log('Video progress API response:', data);
-                } catch (error) {
-                  console.error('Error fetching video progress:', error);
-                }
-              }
-            }}
-            className="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors text-sm"
-          >
-            🎥 Test Video
-          </button>
-          <button
-            onClick={async () => {
-              if (userId) {
-                try {
-                  const response = await fetch(`/api/user-progress/class-timers?userId=${userId}`);
-                  const data = await response.json();
-                  console.log('Class timers API response:', data);
-                } catch (error) {
-                  console.error('Error fetching class timers:', error);
-                }
-              }
-            }}
-            className="px-4 py-2 bg-warning-500 text-white rounded-lg hover:bg-warning-600 transition-colors text-sm"
-          >
-            ⏰ Test Timers
-          </button>
-        </div>
       </div>
-
-      {/* Debug Panel */}
-      {userProgress && (
-        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg text-sm">
-          <h3 className="font-bold mb-2">Debug Info (Strict Mode - 100% Required):</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <strong>Video Watched:</strong>
-              <pre className="text-xs mt-1">{JSON.stringify(userProgress.videoWatched, null, 2)}</pre>
-            </div>
-            <div>
-              <strong>Assessment Passed (100%):</strong>
-              <pre className="text-xs mt-1">{JSON.stringify(userProgress.assessmentCompleted, null, 2)}</pre>
-            </div>
-            <div>
-              <strong>Class Timers:</strong>
-              <pre className="text-xs mt-1">{JSON.stringify(userProgress.classTimers, null, 2)}</pre>
-            </div>
-          </div>
-          <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-            <strong>Note:</strong> Assessments must be passed with 100% score to unlock next class.
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classes.map((classItem, index) => {

@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, QueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 
 interface ClassData {
@@ -35,8 +35,4 @@ export const useClasses = () => {
   });
 };
 
-// Export a function to invalidate classes cache
-export const invalidateClassesCache = () => {
-  const queryClient = new QueryClient();
-  return queryClient.invalidateQueries({ queryKey: ['classes'] });
-}; 
+ 
