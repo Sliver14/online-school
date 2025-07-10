@@ -105,9 +105,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const handleNavClick = useCallback((tab: string) => {
+    // If we're in ClassView (selectedClassId exists), clear it first
+    if (selectedClassId) {
+      setSelectedClassId(null);
+      sessionStorage.removeItem('selectedClassId');
+      // Update URL to home page
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', '/');
+      }
+    }
+    
     setActiveTab(tab);
     setSidebarOpen(false);
-  }, []);
+  }, [selectedClassId]);
 
   const initializeProgress = useCallback((progress: {
     videoWatched?: { [classId: string]: boolean };

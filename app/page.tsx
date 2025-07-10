@@ -108,23 +108,57 @@ const OnlineSchool = () => {
     }
   }, [userId, userLoading, userError, router]);
 
-  // Load selectedClassId from sessionStorage
+  // Load selectedClassId from sessionStorage and URL path
   useEffect(() => {
+    let classIdToSet = null;
+    
+    // First check sessionStorage
     const storedClassId = sessionStorage.getItem('selectedClassId');
     if (storedClassId && !selectedClassId) {
-      setSelectedClassId(storedClassId);
+      classIdToSet = storedClassId;
+    }
+    
+    // If no stored classId, check URL query parameters
+    if (!classIdToSet && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get('view');
+      const classId = urlParams.get('id');
+      
+      if (view === 'class' && classId) {
+        // Validate that the class exists in our classes list
+        const classExists = classes.some(cls => cls.id.toString() === classId);
+        if (classExists) {
+          classIdToSet = classId;
+          // Also store in sessionStorage for consistency
+          sessionStorage.setItem('selectedClassId', classIdToSet);
+        } else {
+          console.warn('Class ID from URL not found in classes list:', classId);
+          // Clear invalid URL by redirecting to home
+          window.history.replaceState(null, '', '/');
+        }
+      }
+    }
+    
+    if (classIdToSet && !selectedClassId) {
+      console.log('Setting selectedClassId from storage/URL:', classIdToSet);
+      setSelectedClassId(classIdToSet);
       setActiveTab('');
     }
-  }, [setSelectedClassId, setActiveTab]);
+  }, [setSelectedClassId, setActiveTab, selectedClassId, classes]);
 
   // Push history state when entering ClassView and listen for popstate
   useEffect(() => {
     if (selectedClassId) {
-      window.history.pushState({ view: 'classView', classId: selectedClassId }, '', `/class/${selectedClassId}`);
+      const url = `/?view=class&id=${selectedClassId}`;
+      window.history.pushState({ view: 'classView', classId: selectedClassId }, '', url);
     }
 
     const handlePopState = (event: PopStateEvent) => {
-      if (!event.state || event.state.view !== 'classView') {
+      // Check if we're going back to home page (no query params)
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get('view');
+      
+      if (!view || view !== 'class') {
         setSelectedClassId(null);
         setActiveTab('classes');
         sessionStorage.removeItem('selectedClassId');
@@ -317,7 +351,8 @@ const OnlineSchool = () => {
             setSelectedClassId(null);
             setActiveTab('classes');
             sessionStorage.removeItem('selectedClassId');
-            window.history.back();
+            // Update URL to home page
+            window.history.replaceState(null, '', '/');
           }}
         />
       );

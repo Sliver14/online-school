@@ -107,7 +107,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
           </div>
         )} */}
         {/* Timer indicator */}
-        {timer !== null && timer > 0 && !isLocked.locked && (
+        {timer !== null && timer > 0 && (
           <div className="absolute top-2 left-2 flex items-center gap-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-full z-20">
             <Clock className="w-3 h-3" />
           </div>
@@ -182,7 +182,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classItem, index, isLocked, timer
         )}
 
         {/* Timer status */}
-        {timer !== null && timer > 0 && !isLocked.locked && (
+        {timer !== null && timer > 0 && (
           <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2">
               <Clock className="w-4 h-4 flex-shrink-0" />

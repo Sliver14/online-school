@@ -115,6 +115,16 @@ const Classes: React.FC = () => {
     return () => clearInterval(interval);
   }, [userId, invalidateProgressCache]);
 
+  // Real-time timer countdown effect
+  const [timerUpdate, setTimerUpdate] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimerUpdate(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const getClassStatus = (classItem: any, index: number) => {
     // Add null check for classItem.id
     if (!classItem || classItem.id == null) {
@@ -188,6 +198,32 @@ const Classes: React.FC = () => {
         locked: true, 
         reason: `Complete Class ${index} first (video + 100% on all assessments)` 
       };
+    }
+
+    // Check for active timer that hasn't expired yet
+    const classTimer = userProgress?.classTimers[classId];
+    if (classTimer && classTimer.timerActive && classTimer.timerExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(classTimer.timerExpiresAt);
+      const timeRemaining = expiresAt.getTime() - now.getTime();
+      
+      console.log(`Class ${classId} timer check:`, {
+        timerActive: classTimer.timerActive,
+        timerExpiresAt: classTimer.timerExpiresAt,
+        now: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        timeRemaining: timeRemaining,
+        isExpired: timeRemaining <= 0
+      });
+
+      if (timeRemaining > 0) {
+        const minutes = Math.floor(timeRemaining / (1000 * 60));
+        const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+        return { 
+          locked: true, 
+          reason: `Timer active - unlocks in ${minutes}m ${seconds}s` 
+        };
+      }
     }
 
     return { locked: false, reason: '' };
@@ -384,11 +420,14 @@ const Classes: React.FC = () => {
             }))
           });
 
-          // Calculate timer value
+          // Calculate timer value (using timerUpdate to trigger re-renders)
           const timer = userProgress?.classTimers[classId];
           const timeLeft = timer?.timerActive && timer.timerExpiresAt
             ? Math.max(0, Math.floor((new Date(timer.timerExpiresAt).getTime() - new Date().getTime()) / 1000))
             : null;
+
+          // Force re-render when timer updates
+          timerUpdate; // This line ensures the component re-renders when timerUpdate changes
 
           return (
             <ClassCard

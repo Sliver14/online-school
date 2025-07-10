@@ -485,13 +485,19 @@ const handleResourceAccess = (resource: ResourceData) => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">{error}</p>
+        <div className="mb-4">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-2 text-neutral-950 dark:text-dark-text-primary">
+            Error Loading Class
+          </h3>
+          <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph mb-4">{error}</p>
+        </div>
         <button
           onClick={() => {
             onBack();
             sessionStorage.removeItem('selectedClassId');
           }}
-          className="mt-4 px-6 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
+          className="px-6 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
         >
           Back to Classes
         </button>
@@ -502,8 +508,15 @@ const handleResourceAccess = (resource: ResourceData) => {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-400 dark:border-primary-400 mx-auto mb-4"></div>
-        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Loading class content...</p>
+        <div className="mb-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-400 dark:border-primary-400 mx-auto mb-4"></div>
+          <h3 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-2 text-neutral-950 dark:text-dark-text-primary">
+            Loading Class Content
+          </h3>
+          <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">
+            Please wait while we load the class materials...
+          </p>
+        </div>
       </div>
     );
   }
@@ -511,13 +524,21 @@ const handleResourceAccess = (resource: ResourceData) => {
   if (!classData) {
     return (
       <div className="text-center py-12">
-        <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph">Class not found</p>
+        <div className="mb-4">
+          <div className="text-6xl mb-4">📚</div>
+          <h3 className="desktop_h3 tablet_h3 mobile_h3 font-semibold mb-2 text-neutral-950 dark:text-dark-text-primary">
+            Class Not Found
+          </h3>
+          <p className="text-neutral-500 dark:text-dark-text-muted desktop_paragraph tablet_paragraph mobile_paragraph mb-4">
+            The class you're looking for doesn't exist or may have been removed.
+          </p>
+        </div>
         <button
           onClick={() => {
             onBack();
             sessionStorage.removeItem('selectedClassId');
           }}
-          className="mt-4 px-6 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
+          className="px-6 py-2 bg-secondary-500 dark:bg-secondary-600 text-white rounded-lg hover:bg-secondary-600 dark:hover:bg-secondary-700 transition-colors"
         >
           Back to Classes
         </button>

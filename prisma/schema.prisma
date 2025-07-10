@@ -8,183 +8,202 @@ datasource db {
 }
 
 model User {
-  id                    Int                    @id @default(autoincrement())
-  email                 String                 @unique
-  firstName             String
-  lastName              String
-  phoneNumber           String
-  zone                  String
-  church                String?
-  country               String
-  city                  String
-  kcUsername            String
-  password              String
-  verificationToken     String?                @unique
-  verified              Boolean                @default(false)
-  approved              Boolean                @default(false)
-  approvedBy            Int?
-  approvedAt            DateTime?
-  verifiedAt            DateTime?
+  id                         Int                         @id @default(autoincrement())
+  email                      String                      @unique
+  firstName                  String
+  lastName                   String
+  phoneNumber                String
+  zone                       String
+  church                     String?
+  country                    String
+  city                       String
+  kcUsername                 String
+  password                   String
+  verificationToken          String?                     @unique
+  verified                   Boolean                     @default(false)
+  approved                   Boolean                     @default(false)
+  approvedBy                 Int?
+  approvedAt                 DateTime?
+  verifiedAt                 DateTime?
   verificationTokenExpiresAt DateTime?
-  lastVerificationSent  DateTime?
-  resetToken            String?                // Added for password reset
-  resetTokenExpiresAt   DateTime?              // Added for password reset expiry
-
-  progress              UserProgress[]
-  assessments           UserAssessment[]
-  exams                 UserExam[]
-  assignmentSubmissions ClassAssignmentSubmission[] // Updated from essaySubmissions
-  classTimers           ClassTimers[]          @relation
-
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  lastVerificationSent       DateTime?
+  resetToken                 String?
+  resetTokenExpiresAt        DateTime?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  assignmentSubmissions      ClassAssignmentSubmission[]
+  classTimers                ClassTimers[]
+  exams                      UserExam[]
+  progress                   UserProgress[]
+  assessments                UserAssessment[]
 }
 
 model Class {
-  id               Int                    @id @default(autoincrement())
-  title            String
-  description      String?
-  videos           Video[]
-  assessments      Assessment[]
-  resources        ClassResource[]
-  assignmentSubmissions ClassAssignmentSubmission[] // Updated from essaySubmissions
-  classTimers      ClassTimers[]          @relation
-  order            Int
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+  id                    Int                         @id @default(autoincrement())
+  title                 String
+  description           String?
+  order                 Int
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  assessments           Assessment[]
+  assignmentSubmissions ClassAssignmentSubmission[]
+  resources             ClassResource[]
+  classTimers           ClassTimers[]
+  videos                Video[]
 }
 
 model ClassTimers {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  classId       Int
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  classId        Int
   timerExpiresAt DateTime?
-  timerActive   Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  class         Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  timerActive    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  class          Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, classId])
+  @@index([classId], map: "ClassTimers_classId_fkey")
 }
 
 model Video {
-  id             Int             @id @default(autoincrement())
-  class          Class           @relation(fields: [classId], references: [id])
+  id             Int            @id @default(autoincrement())
   classId        Int
   title          String
   videoUrl       String
   classNumber    String
   videoPosterUrl String
   order          Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   progress       UserProgress[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  class          Class          @relation(fields: [classId], references: [id])
+
+  @@index([classId], map: "Video_classId_fkey")
 }
 
 model Assessment {
-  id            Int              @id @default(autoincrement())
-  class         Class            @relation(fields: [classId], references: [id])
-  classId       Int
-  title         String
-  questions     Question[]
-  submissions   UserAssessment[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id          Int              @id @default(autoincrement())
+  classId     Int
+  title       String           @unique
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  class       Class            @relation(fields: [classId], references: [id])
+  questions   Question[]
+  submissions UserAssessment[]
+
+  @@index([classId], map: "Assessment_classId_fkey")
 }
 
 model Question {
   id            Int        @id @default(autoincrement())
-  assessment    Assessment @relation(fields: [assessmentId], references: [id])
   assessmentId  Int
-  text          String
-  options       Json
+  text          String     @db.Text
+  options       String     @db.LongText
   correctAnswer String
+  assessment    Assessment @relation(fields: [assessmentId], references: [id])
+
+  @@unique([assessmentId, text(length: 255)])
 }
 
 model UserProgress {
-  id             Int      @id @default(autoincrement())
-  user           User     @relation(fields: [userId], references: [id])
+  id             Int       @id @default(autoincrement())
   userId         Int
-  video          Video    @relation(fields: [videoId], references: [id])
   videoId        Int
-  watchedAt      DateTime @default(now())
+  watchedAt      DateTime  @default(now())
   timerExpiresAt DateTime?
-  timerActive    Boolean  @default(true)
+  timerActive    Boolean   @default(true)
+  user           User      @relation(fields: [userId], references: [id])
+  video          Video     @relation(fields: [videoId], references: [id])
+
+  @@index([userId], map: "UserProgress_userId_fkey")
+  @@index([videoId], map: "UserProgress_videoId_fkey")
 }
 
 model UserAssessment {
-  id              Int      @id @default(autoincrement())
+  id              Int        @id @default(autoincrement())
   userId          Int
   assessmentId    Int
   score           Int
-  isPassed        Boolean  @default(false)
-  answers         Json?
-  detailedResults Json?
-  attemptCount    Int      @default(1)
-  completedAt     DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPassed        Boolean    @default(false)
+  answers         String?    @db.LongText
+  detailedResults String?    @db.LongText
+  attemptCount    Int        @default(1)
+  completedAt     DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, assessmentId])
+  @@index([assessmentId], map: "user_assessments_assessmentId_fkey")
   @@map("user_assessments")
 }
 
 model Exam {
   id        Int            @id @default(autoincrement())
   title     String
-  questions ExamQuestion[]
-  results   UserExam[]
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+  questions ExamQuestion[]
+  results   UserExam[]
 }
 
 model ExamQuestion {
   id            Int    @id @default(autoincrement())
-  exam          Exam   @relation(fields: [examId], references: [id])
   examId        Int
   text          String
-  options       Json
+  options       String @db.LongText
   correctAnswer String
+  exam          Exam   @relation(fields: [examId], references: [id])
+
+  @@index([examId], map: "ExamQuestion_examId_fkey")
 }
 
 model UserExam {
   id      Int      @id @default(autoincrement())
-  user    User     @relation(fields: [userId], references: [id])
   userId  Int
-  exam    Exam     @relation(fields: [examId], references: [id])
   examId  Int
   score   Float
   takenAt DateTime @default(now())
+  exam    Exam     @relation(fields: [examId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+
+  @@index([examId], map: "UserExam_examId_fkey")
+  @@index([userId], map: "UserExam_userId_fkey")
 }
 
 model ClassResource {
-  id            Int          @id @default(autoincrement())
-  class         Class        @relation(fields: [classId], references: [id])
-  classId       Int
-  title         String @db.VarChar(512)
-  type          ResourceType
-  content       String?
-  resourceUrl   String?
-  requiresUpload Boolean     @default(false)
-  order         Int
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id             Int          @id @default(autoincrement())
+  classId        Int
+  title          String       @db.VarChar(512)
+  type           ResourceType
+  content        String?
+  resourceUrl    String?
+  requiresUpload Boolean      @default(false)
+  order          Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  class          Class        @relation(fields: [classId], references: [id])
+
+  @@index([classId], map: "ClassResource_classId_fkey")
 }
 
 model ClassAssignmentSubmission {
   id          Int      @id @default(autoincrement())
-  user        User     @relation(fields: [userId], references: [id])
   userId      Int
-  class       Class    @relation(fields: [classId], references: [id])
   classId     Int
   content     String
-  text        String   @db.Text // New field for text submission
+  text        String   @db.Text
   submittedAt DateTime @default(now())
   reviewed    Boolean  @default(false)
   remarks     String?
+  class       Class    @relation(fields: [classId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([classId], map: "ClassAssignmentSubmission_classId_fkey")
+  @@index([userId], map: "ClassAssignmentSubmission_userId_fkey")
 }
 
 enum ResourceType {
