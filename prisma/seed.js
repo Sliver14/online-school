@@ -49,7 +49,7 @@ async function main() {
   console.log('Seeding classes...');
   await prisma.class.createMany({
     data: classData,
-    skipDuplicates: true, // Skip if a class with the same unique field (e.g., title, if unique) exists
+    skipDuplicates: true,
   });
 
   // Fetch the created classes to get their generated IDs
@@ -62,7 +62,7 @@ async function main() {
   // Map class titles to their generated IDs
   const classIdMap = createdClasses.reduce((map, cls, index) => {
     map[cls.title] = cls.id;
-    map[index + 1] = cls.id; // Also map original order (1-based) to IDs for convenience
+    map[index + 1] = cls.id;
     return map;
   }, {});
 
@@ -180,7 +180,7 @@ async function main() {
     { classId: classIdMap['Introduction To Cell Ministry'], title: 'Download from PCDL and listen to “Topical Teaching Highlights on Christian Growth and Maturity”', type: 'ASSIGNMENT', content: 'Download from PCDL and listen to “Topical Teaching Highlights on Christian Growth and Maturity”', requiresUpload: false, order: 5 },
     { classId: classIdMap['Introduction To Cell Ministry'], title: 'Listen to the Message “Tithes and Offerings”. Sign up for at least one Partnership Arm', type: 'ESSAY', content: 'Listen to the Message “Tithes and Offerings”. Sign up for at least one Partnership Arm', requiresUpload: true, order: 6 },
 
-    // Class 6 Resources (should map to 'Christian Character And Prosperity')
+    // Class 6 Resources
     { classId: classIdMap['Christian Character And Prosperity'], title: 'Power of Your Mind', type: 'READ', resourceUrl: '#', order: 1 },
     { classId: classIdMap['Christian Character And Prosperity'], title: 'Topical Teaching Highlights on Christian Growth and Maturity', type: 'VIDEO', resourceUrl: '#', order: 2 },
     { classId: classIdMap['Christian Character And Prosperity'], title: 'Tithes and Offerings', type: 'VIDEO', resourceUrl: '#', order: 3 },
@@ -310,132 +310,358 @@ async function main() {
     return map;
   }, {});
 
-  // Create questions
+  // Create updated questions
   const questionData = [
-    // Question for Class 1
+    // Class 1: The New Creature
     {
       assessmentId: assessmentIdMap['New Creature Quiz'],
-      text: 'What does it mean to be a "new creature" in Christ?',
-      options: ['A new spiritual identity', 'A physical transformation', 'Joining a new church', 'Learning new skills'],
-      correctAnswer: 'A new spiritual identity',
-    },
-    // Questions for Class 2 (Holy Spirit)
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'The Pentecost is not a Christian feast but rather refers to a _______ celebration.',
-      options: ['Greek', 'Jewish', 'English', 'German'],
-      correctAnswer: 'Jewish',
+      text: 'The term “New Creature” is directly from which of these scriptures?',
+      options: ['Gal 5:16', '1 Cor 10:10', '2 Cor 5:17'],
+      correctAnswer: '2 Cor 5:17',
     },
     {
+      assessmentId: assessmentIdMap['New Creature Quiz'],
+      text: 'The New Creature has a brand-new nature and therefore a new life.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['New Creature Quiz'],
+      text: 'Your believe and acceptance of Jesus Christ as Lord and Savior made it possible for you to have-------,  -------- and ---------',
+      options: [
+        'Good Education, Character of God and Confidence',
+        'Wealth, Friends and good neighbors',
+        'Eternal Life, Righteousness and Fellowship with God',
+      ],
+      correctAnswer: 'Eternal Life, Righteousness and Fellowship with God',
+    },
+    {
+      assessmentId: assessmentIdMap['New Creature Quiz'],
+      text: 'According to Romans 10:9-10, You received salvation by…………',
+      options: [
+        'Giving alms to the poor and needy',
+        'Believe and Confession of the Lord Jesus',
+        'Obeying the 10 commandment and confession of your sins',
+      ],
+      correctAnswer: 'Believe and Confession of the Lord Jesus',
+    },
+    {
+      assessmentId: assessmentIdMap['New Creature Quiz'],
+      text: '“Rom 12: (NIV) says ……Do not conform to the pattern of this world, but be transformed by the renewing of your mind.” This produces for you all of these except',
+      options: [
+        'It brings about a transformation of the old man',
+        'It helps you to bear fruits of the recreated human spirit',
+        'To remind you of your former memories',
+      ],
+      correctAnswer: 'To remind you of your former memories',
+    },
+    {
+      assessmentId: assessmentIdMap['New Creature Quiz'],
+      text: 'Because of the new life you now have, sin shall not have -------- over you',
+      options: ['Limitation', 'Deficiency', 'Dominion'],
+      correctAnswer: 'Dominion',
+    },
+    {
+      assessmentId: assessmentIdMap['New Creature Quiz'],
+      text: 'The new creature sits in the place of power in Christ',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+
+    // Class 2: The Holy Spirit
+    {
       assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: '___________ baptizes you into the body of Christ.',
-      options: ['The Holy Spirit', 'God', 'Our Lord Jesus', 'Your Pastor'],
+      text: 'And, behold, I send the promise of my Father upon you: but tarry ye in the city of Jerusalem, until ye be endued with power from on high. This statement was made by………',
+      options: ['Peter', 'Lord Jesus', 'The Holy Spirit'],
+      correctAnswer: 'Lord Jesus',
+    },
+    {
+      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
+      text: 'The above scripture can be found in…………',
+      options: ['Luke 24:49', 'John 15:10', '2 Cor 5:17'],
+      correctAnswer: 'Luke 24:49',
+    },
+    {
+      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
+      text: 'Who is the Holy Spirit?',
+      options: ['God’s Creation', 'A mighty Angel', 'God Himself'],
+      correctAnswer: 'God Himself',
+    },
+    {
+      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
+      text: 'On the day of Pentecost, in the upper room the Disciples of the Lord Jesus received ........',
+      options: ['Peace', 'Fortification', 'The Holy Spirit'],
       correctAnswer: 'The Holy Spirit',
     },
     {
       assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'Being baptized into the Holy Spirit and receiving the Holy Spirit are the same experience?',
-      options: ['True', 'False', 'Not really', 'None of the above'],
+      text: 'The Indwelling of the Holy Spirit and infilling of the Holy Spirit are two separate experiences.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
+      text: 'You can receive the Holy Spirit by………',
+      options: [
+        'Faith and laying on of hands of someone who already received the Holy Spirit',
+        'Doing good works and begging God to give you the Spirit',
+        'Fasting and prayer',
+      ],
+      correctAnswer: 'Faith and laying on of hands of someone who already received the Holy Spirit',
+    },
+    {
+      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
+      text: 'Which of these is not an advantage of speaking in tongues………',
+      options: [
+        'It helps you to operate at your highest level of faith',
+        'Fellowship with God in Mysteries unknown to Man',
+        'Judge and condemn people that are not born again',
+      ],
+      correctAnswer: 'Judge and condemn people that are not born again',
+    },
+
+    // Class 3: Christian Doctrines
+    {
+      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
+      text: '“All scripture is given by inspiration of God, and is profitable for doctrine, for reproof, for correction, for instruction in righteousness”. This can be found in……..',
+      options: ['John 3:16', 'Eph 1:17', '2 Tim 3:16'],
+      correctAnswer: '2 Tim 3:16',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
+      text: 'As a Christian, you are in the part of God’s Kingdom established in the earth, also called the kingdom of Heaven, and headed by ………. ',
+      options: ['God the Father', 'the Holy Spirit', 'the Lord Jesus Christ'],
+      correctAnswer: 'the Lord Jesus Christ',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
+      text: 'Doctrines are transferable through….',
+      options: ['Impartation', 'Teaching', 'Grace'],
+      correctAnswer: 'Teaching',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
+      text: 'Our Doctrines are of God and provide us a sound, unshakable and tested pattern to follow, based on …….',
+      options: [
+        'the infallible and indestructible Word of God',
+        'The structure of our Ministry',
+        'The grace of God that has appeared to all Men',
+      ],
+      correctAnswer: 'the infallible and indestructible Word of God',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
+      text: '………. refers to a systematic argumentative discourse in defense of the gospel or defense of a doctrine',
+      options: ['Activism', 'Debate', 'Apologetics'],
+      correctAnswer: 'Apologetics',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
+      text: 'Loveworld Perfectionism is the ideology or disposition to regard anything short of ……….and………as unacceptable.',
+      options: ['perfect, excellent', 'True, just', 'holy, righteous'],
+      correctAnswer: 'perfect, excellent',
+    },
+
+    // Class 4A: Evangelism
+    {
+      assessmentId: assessmentIdMap['Evangelism Assessment'],
+      text: 'There is no difference between “Soul Winning” and “Soul Saving”.',
+      options: ['True', 'False'],
       correctAnswer: 'False',
     },
     {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'You can’t receive a double anointing because',
-      options: [
-        'The Holy Spirit is given in fullness once',
-        'The one who gives the anointing is in you in His fullness',
-        'It is reserved for pastors only',
-        'It is not biblical',
-      ],
-      correctAnswer: 'The one who gives the anointing is in you in His fullness',
+      assessmentId: assessmentIdMap['Evangelism Assessment'],
+      text: 'The important focus of Evangelism in these last days is not just to witness but to ………those we reach with the gospel',
+      options: ['teach and disciple', 'exhort and edify', 'heal and deliver'],
+      correctAnswer: 'teach and disciple',
     },
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'The Holy Spirit Proceeds _____________ the father',
-      options: ['With', 'To', 'From', 'Away'],
-      correctAnswer: 'From',
-    },
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'How does God live in you?',
-      options: ['By His Grace', 'By His mercy', 'By His Spirit', 'By His love'],
-      correctAnswer: 'By His Spirit',
-    },
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'One of the ways to receive the Holy Spirit is',
-      options: [
-        'By studying the Word voraciously',
-        'By fasting consistently',
-        'By praying with faith to receive Him',
-        'By attending church regularly',
-      ],
-      correctAnswer: 'By praying with faith to receive Him',
-    },
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'Speaking in tongues is all but one of the following',
-      options: [
-        'A way to edify oneself',
-        'A sign of the Holy Spirit',
-        'A human language not understood by the speaker',
-        'A way to glorify God',
-      ],
-      correctAnswer: 'A human language not understood by the speaker',
-    },
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'The Seven Spirits of God include all but',
-      options: ['Spirit of Peace', 'Spirit of Might', 'Spirit of Counsel', 'Spirit of Knowledge'],
-      correctAnswer: 'Spirit of Peace',
-    },
-    {
-      assessmentId: assessmentIdMap['Holy Spirit Assessment'],
-      text: 'One of these is a gift of the Spirit as listed in 1 Cor. 12: 8 - 10',
-      options: ['Word of Wisdom', 'New levels of Grace', 'Peace of mind', 'Greater Anointing'],
-      correctAnswer: 'Word of Wisdom',
-    },
-    // Question for Class 3
-    {
-      assessmentId: assessmentIdMap['Christian Doctrines Quiz'],
-      text: 'Which doctrine teaches that Jesus is both God and man?',
-      options: ['Trinity', 'Hypostatic Union', 'Salvation', 'Baptism'],
-      correctAnswer: 'Hypostatic Union',
-    },
-    // Question for Class 4
     {
       assessmentId: assessmentIdMap['Evangelism Assessment'],
-      text: 'What is the primary goal of evangelism?',
-      options: ['Selling books', 'Sharing the Gospel', 'Building churches', 'Hosting events'],
-      correctAnswer: 'Sharing the Gospel',
+      text: 'When God saves you, He makes you …….. in saving others',
+      options: ['His servant', 'His Partner', 'His friend'],
+      correctAnswer: 'His Partner',
     },
-    // Question for Class 5
+    {
+      assessmentId: assessmentIdMap['Evangelism Assessment'],
+      text: 'The ministry of reconciliation, is for every Christian.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['Evangelism Assessment'],
+      text: 'How many steps were given by our man of God to help us bring our work of soulwinning to perfection?',
+      options: ['10', '15', '7'],
+      correctAnswer: '7',
+    },
+    {
+      assessmentId: assessmentIdMap['Evangelism Assessment'],
+      text: 'The first step to Perfecting Soul Winning is……….',
+      options: ['Be filled with the Spirit', 'Introduce the church’s mentorship program', 'Explain the Gospel'],
+      correctAnswer: 'Be filled with the Spirit',
+    },
+    {
+      assessmentId: assessmentIdMap['Evangelism Assessment'],
+      text: 'The final step to Perfecting Soul Winning is……….',
+      options: ['Be filled with the Spirit', 'Introduce the church’s mentorship program', 'Release them into Leadership'],
+      correctAnswer: 'Release them into Leadership',
+    },
+
+    // Class 4B: Cell Ministry
     {
       assessmentId: assessmentIdMap['Cell Ministry Quiz'],
-      text: 'What is the main purpose of a cell group in church ministry?',
-      options: ['Fundraising', 'Fellowship and discipleship', 'Organizing concerts', 'Building facilities'],
-      correctAnswer: 'Fellowship and discipleship',
+      text: 'A Cell is ……….',
+      options: [
+        'The basic Fellowship and Outreach Unit of the Church',
+        'The Charity arm of the Church',
+        'The administrative and Operational Unit of the Church',
+      ],
+      correctAnswer: 'The basic Fellowship and Outreach Unit of the Church',
     },
-    // Question for Class 6
+    {
+      assessmentId: assessmentIdMap['Cell Ministry Quiz'],
+      text: 'The Cell Ministry provides a tested, proven and scripturally based Roadmap to………',
+      options: [
+        'win new converts, build and send them',
+        'Keep track of the offerings and tithes received by the church',
+        'Organize Church Meetings',
+      ],
+      correctAnswer: 'win new converts, build and send them',
+    },
+    {
+      assessmentId: assessmentIdMap['Cell Ministry Quiz'],
+      text: 'The Cell Ministry is optional.',
+      options: ['True', 'False'],
+      correctAnswer: 'False',
+    },
+    {
+      assessmentId: assessmentIdMap['Cell Ministry Quiz'],
+      text: 'Participation in the Cell Ministry is a pre-requisite for a member to be considered for leadership responsibilities in the Church.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['Cell Ministry Quiz'],
+      text: 'The Cell Ministry is the same across all our Churches in the Loveworld Nation.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['Cell Ministry Quiz'],
+      text: '…….... and ................ are some of the activities that take place in a cell.',
+      options: ['Prayer and Bible Study', 'Music and Recreation', 'Planning and Playing'],
+      correctAnswer: 'Prayer and Bible Study',
+    },
+    {
+      assessmentId: assessmentIdMap['Cell Ministry Quiz'],
+      text: 'Which meeting is missing in the link?[Image of a meeting schedule](https://res.cloudinary.com/dfi8bpolg/image/upload/v1752082439/tvdootqcwqogtd0oowxb.png)',
+      options: ['Prayer and Planning', 'Mid-week Service', 'Sunday Service'],
+      correctAnswer: 'Prayer and Planning',
+    },
+
+    // Class 5: Christian Character And Prosperity
     {
       assessmentId: assessmentIdMap['Christian Character Quiz'],
-      text: 'What is a key aspect of Christian character according to the Bible?',
-      options: ['Wealth accumulation', 'Humility', 'Fame', 'Power'],
-      correctAnswer: 'Humility',
+      text: 'The new Creature has a new life, which makes it possible to develop a new character and lifestyle that is consistent with his calling in Christ.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
     },
-    // Question for Class 7
+    {
+      assessmentId: assessmentIdMap['Christian Character Quiz'],
+      text: 'Which of these is not required for a Christian to grow as God has planned?',
+      options: ['Avoid wrong associations', 'Cultivate a Culture of Prayer', 'Attend organizational functions'],
+      correctAnswer: 'Attend organizational functions',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Character Quiz'],
+      text: 'As a Christian, you have become a joint-heir with Christ. This alone makes it impossible for you to be in lack.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Character Quiz'],
+      text: 'Prosperity starts with….',
+      options: ['Giving', 'Confession', 'Receiving'],
+      correctAnswer: 'Giving',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Character Quiz'],
+      text: '…………….. refers to the one tenth of the value of your income',
+      options: ['Tithe', 'Seed Offering', 'First Fruits'],
+      correctAnswer: 'Tithe',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Character Quiz'],
+      text: '…………….. is given with expectation of a specific outcome or just to sow into a special grace.',
+      options: ['Tithe', 'Seed Offering', 'First Fruits'],
+      correctAnswer: 'Seed Offering',
+    },
+    {
+      assessmentId: assessmentIdMap['Christian Character Quiz'],
+      text: '………… refers to the first and the best of all your increase.',
+      options: ['Partnership Seeds', 'Seed Offering', 'First Fruits'],
+      correctAnswer: 'First Fruits',
+    },
+
+    // Class 6: The Local Assembly And Loveworld Inc.
     {
       assessmentId: assessmentIdMap['Local Assembly Assessment'],
-      text: 'What is Loveworld Inc. primarily focused on?',
-      options: ['Real estate', 'Global ministry and evangelism', 'Manufacturing', 'Education'],
-      correctAnswer: 'Global ministry and evangelism',
+      text: 'The word Church is translated from the Greek word ECCLESIA which means the……',
+      options: ['gathering of the called-out people', 'Gathering of the same family', 'Gathering of friends'],
+      correctAnswer: 'gathering of the called-out people',
     },
-    // Question for Class 8
+    {
+      assessmentId: assessmentIdMap['Local Assembly Assessment'],
+      text: 'The Universal Church refers to…………',
+      options: [
+        'the entire Body of Christ in the earth',
+        'Christian Denominations based on region',
+        'The devout Christians who call on the name of the lord',
+      ],
+      correctAnswer: 'the entire Body of Christ in the earth',
+    },
+    {
+      assessmentId: assessmentIdMap['Local Assembly Assessment'],
+      text: 'Being a member of the Local Assembly, your first and most important personal responsibility is to………',
+      options: ['Cultivate a culture of prayer', 'attend the corporate Services', 'Invite others to Church'],
+      correctAnswer: 'attend the corporate Services',
+    },
+    {
+      assessmentId: assessmentIdMap['Local Assembly Assessment'],
+      text: 'The vision of Christ Embassy is to take the divine presence of God to the nations and peoples of the World and to demonstrate the ----------',
+      options: ['character of the spirit', 'good moral character', 'excellence in preaching'],
+      correctAnswer: 'character of the spirit',
+    },
+    {
+      assessmentId: assessmentIdMap['Local Assembly Assessment'],
+      text: 'In Christ Embassy our Statements of Faith have their source in the ……',
+      options: ['research analysis', 'Bible', 'personal experience'],
+      correctAnswer: 'Bible',
+    },
+
+    // Class 7: Introduction To Mobile Technology
     {
       assessmentId: assessmentIdMap['Mobile Technology Quiz'],
-      text: 'How can mobile technology aid evangelism?',
-      options: ['Cooking meals', 'Spreading the Gospel via apps', 'Building houses', 'Driving outreach'],
-      correctAnswer: 'Spreading the Gospel via apps',
+      text: 'In Christ Embassy, we believe strongly that Technology is primarily for the propagation of ............',
+      options: ['academic curriculum', 'the gospel', 'news on social media'],
+      correctAnswer: 'the gospel',
+    },
+    {
+      assessmentId: assessmentIdMap['Mobile Technology Quiz'],
+      text: 'It is desirable for all members of our Church to have sufficient knowledge of our Ministry Technology Platforms and Apps, and how to use them for personal growth, access information, contribute and share information, and how to use them to reach souls and disciple others.',
+      options: ['True', 'False'],
+      correctAnswer: 'True',
+    },
+    {
+      assessmentId: assessmentIdMap['Mobile Technology Quiz'],
+      text: '..........is the Ministry mobile application that allows users access to an array of life transforming audio and video messages by Pastor Chris spanning various life issues',
+      options: ['PCDL', 'Loveworld Sat', 'SoulTracker'],
+      correctAnswer: 'PCDL',
+    },
+    {
+      assessmentId: assessmentIdMap['Mobile Technology Quiz'],
+      text: '……is a Ministry platform available for recording your work of soul winning',
+      options: ['PCDL', 'SoulTracker', 'Loveworld App store'],
+      correctAnswer: 'SoulTracker',
     },
   ];
 

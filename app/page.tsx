@@ -97,14 +97,21 @@ const OnlineSchool = () => {
 
   // Redirect unauthenticated users
   useEffect(() => {
-    console.log('Home Page - User:', { userId, userLoading, userError, path: window.location.pathname });
     if (userLoading) return;
+    
     if (!userId) {
-      // toast('Please sign in to access your classes', { icon: 'ℹ️' });
-      router.replace('/welcome');
+      // Only redirect if we're not already on welcome page
+      if (typeof window !== 'undefined' && window.location.pathname !== '/welcome') {
+        router.replace('/welcome');
+      }
+      return;
     }
+    
     if (userError) {
-      toast.error(userError);
+      console.error('User authentication error:', userError);
+      // Clear invalid token and redirect
+      document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      router.replace('/welcome');
     }
   }, [userId, userLoading, userError, router]);
 
@@ -172,13 +179,7 @@ const OnlineSchool = () => {
   }, [selectedClassId, setSelectedClassId, setActiveTab]);
 
   useEffect(() => {
-    renderCount.current += 1;
-    console.log(`OnlineSchool rendered ${renderCount.current} times`);
-  });
-
-  useEffect(() => {
     if (classes.length >= 0) {
-      console.log('Classes loaded, setting loading to false');
       setLoadingClasses(false);
     }
   }, [classes]);

@@ -2,40 +2,51 @@
 import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-export async function getCurrentUserId(request: NextRequest): Promise<number | null> {
+export interface AuthUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export const verifyTokenFromRequest = (req: NextRequest): AuthUser | null => {
+  const token = req.cookies.get('authToken')?.value;
+  
+  if (!token) {
+    return null;
+  }
+
   try {
-    // Get token from Authorization header or cookies
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '') || request.cookies.get('auth-token')?.value;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
     
-    if (!token) {
+    if (!decoded.email) {
       return null;
     }
 
-    // Verify and decode JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    return decoded.userId || decoded.id;
+    return {
+      id: decoded.userId || '',
+      email: decoded.email,
+      firstName: decoded.firstName || '',
+      lastName: decoded.lastName || '',
+    };
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error('Token verification failed:', error);
     return null;
   }
-}
+};
 
-// Alternative: If you're using next-auth or similar
-export async function getCurrentUserFromSession(request: NextRequest): Promise<number | null> {
-  try {
-    // This depends on your authentication setup
-    // Example with next-auth:
-    // const session = await getServerSession(authOptions);
-    // return session?.user?.id ? parseInt(session.user.id) : null;
-    
-    // Placeholder implementation
-    return 1; // Replace with actual session handling
-  } catch (error) {
-    console.error('Error getting user from session:', error);
-    return null;
-  }
-}
+export const isPublicRoute = (pathname: string): boolean => {
+  const publicRoutes = ['/welcome', '/auth', '/api/auth'];
+  return publicRoutes.some(route => pathname.startsWith(route));
+};
+
+export const clearAuthToken = (): void => {
+  document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+};
+
+export const setAuthToken = (token: string): void => {
+  document.cookie = `authToken=${token}; path=/; max-age=604800; secure; samesite=strict`;
+};
 
 // lib/types.ts
 export interface ClassData {

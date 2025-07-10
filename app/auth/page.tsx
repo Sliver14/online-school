@@ -47,7 +47,7 @@ interface ApiErrorResponse {
 const Authpage: React.FC = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { userId, userLoading, userError } = useUser();
+  const { userId, userLoading, userError, refreshAuth } = useUser();
   const [isLogin, setIsLogin] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -62,6 +62,7 @@ const Authpage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState<string>('');
   const [forgotError, setForgotError] = useState<string>('');
   const [forgotSuccess, setForgotSuccess] = useState<boolean>(false);
+  const [justSignedIn, setJustSignedIn] = useState<boolean>(false);
   const zoneRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
   const forgotModalRef = useRef<HTMLDivElement>(null);
@@ -82,7 +83,10 @@ const Authpage: React.FC = () => {
   useEffect(() => {
     if (userLoading) return;
     if (userId) {
-      toast.success('Already signed in!');
+      // Only show toast if user is actively on auth page and didn't just sign in
+      if (typeof window !== 'undefined' && window.location.pathname === '/auth' && !justSignedIn) {
+        toast.success('Already signed in!');
+      }
       router.replace('/');
     }
     if (userError) {
@@ -95,7 +99,7 @@ const Authpage: React.FC = () => {
     } else if (mode === 'signin') {
       setIsLogin(true);
     }
-  }, [searchParams, userLoading, userError, router]);
+  }, [searchParams, userLoading, userError, router, justSignedIn]);
 
   useEffect(() => {
     if (showSuccessNotification) {
@@ -103,6 +107,14 @@ const Authpage: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [showSuccessNotification]);
+
+  // Reset justSignedIn flag after a delay
+  useEffect(() => {
+    if (justSignedIn) {
+      const timer = setTimeout(() => setJustSignedIn(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justSignedIn]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -228,9 +240,15 @@ const Authpage: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
+      
       toast.success('Signed in successfully!');
+      setJustSignedIn(true);
+      
+      // Refresh the auth state to pick up the new token
+      await refreshAuth();
+      
+      // Redirect to home page
       router.replace('/');
-      window.location.reload();
     } catch (error) {
       console.error('Sign-in error:', error);
       let errorMessage = 'Invalid email or password';

@@ -91,6 +91,16 @@ export async function GET(
       ? JSON.parse(userAssessment.detailedResults as string)
       : [];
 
+    console.log('User assessment from DB:', {
+      id: userAssessment.id,
+      score: userAssessment.score,
+      isPassed: userAssessment.isPassed,
+      answers: userAssessment.answers,
+      detailedResults: userAssessment.detailedResults,
+      parsedAnswers: answers,
+      parsedDetailedResults: detailedResults
+    });
+
     return NextResponse.json({
       success: true,
       data: {

@@ -4,15 +4,23 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ArrowRight, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-// import { useUser } from '../context/UserContext';
+import { useUser } from '../context/UserContext';
 import { Toaster, toast } from 'react-hot-toast';
 
 const Welcome = () => {
   const router = useRouter();
-  // const { userId, userLoading, userError } = useUser();
+  const { userId, userLoading } = useUser();
   const [isGetStartedHovered, setIsGetStartedHovered] = useState(false);
   const [isLoginHovered, setIsLoginHovered] = useState(false);
   const [clickedButton, setClickedButton] = useState<string | null>(null);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (userLoading) return;
+    if (userId) {
+      router.replace('/');
+    }
+  }, [userId, userLoading, router]);
 
   const handleGetStarted = () => {
     // setClickedButton('getStarted');

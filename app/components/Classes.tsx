@@ -63,16 +63,10 @@ interface ClassTimer {
 const Classes: React.FC = () => {
   const { userId } = useUser();
   const { setClasses, videoWatched, assessmentCompleted, initializeProgress, invalidateProgressCache } = useAppContext();
-  const renderCount = useRef(0);
 
   // Use React Query for data fetching
   const { data: classes = [], isLoading: classesLoading, error: classesError } = useClasses();
   const { data: userProgress, isLoading: progressLoading, error: progressError } = useUserProgress(userId || undefined);
-
-  useEffect(() => {
-    renderCount.current += 1;
-    console.log(`Classes component rendered ${renderCount.current} times`);
-  });
 
   // Update context when data is loaded
   useEffect(() => {
@@ -83,7 +77,6 @@ const Classes: React.FC = () => {
 
   useEffect(() => {
     if (userProgress) {
-      console.log('User progress loaded:', userProgress);
       initializeProgress({
         videoWatched: userProgress.videoWatched,
         assessmentCompleted: userProgress.assessmentCompleted,
@@ -128,24 +121,11 @@ const Classes: React.FC = () => {
           // Add null check for assessment.id
           if (!assessment || assessment.id == null) return false;
           const assessmentPassed = userProgress?.assessmentCompleted[assessment.id.toString()] || false;
-          console.log(`Class ${classId} - Assessment ${assessment.id} passed (100%):`, assessmentPassed);
           return assessmentPassed;
         })
       : true;
     
     const isCompleted = isVideoWatched && allAssessmentsCompleted;
-
-    console.log(`Class ${classId} (${classItem.title}) status:`, {
-      index,
-      isVideoWatched,
-      allAssessmentsCompleted,
-      isCompleted,
-      assessments: classItem.assessments.map((a: any) => ({ 
-        id: a.id, 
-        title: a.title,
-        passed: userProgress?.assessmentCompleted[a.id.toString()] 
-      }))
-    });
 
     // For the first class, it's always available
     if (index === 0) {
@@ -165,18 +145,11 @@ const Classes: React.FC = () => {
           // Add null check for assessment.id
           if (!assessment || assessment.id == null) return false;
           const assessmentPassed = userProgress?.assessmentCompleted[assessment.id.toString()] || false;
-          console.log(`Previous class assessment ${assessment.id} passed (100%):`, assessmentPassed);
           return assessmentPassed;
         })
       : true;
     const prevCompleted = prevVideoWatched && prevAssessmentsCompleted;
     
-    console.log(`Previous class ${prevClassId} status:`, {
-      prevVideoWatched,
-      prevAssessmentsCompleted,
-      prevCompleted
-    });
-
     if (isCompleted) {
       return { locked: false, reason: '' };
     }
@@ -195,15 +168,6 @@ const Classes: React.FC = () => {
       const expiresAt = new Date(classTimer.timerExpiresAt);
       const timeRemaining = expiresAt.getTime() - now.getTime();
       
-      console.log(`Class ${classId} timer check:`, {
-        timerActive: classTimer.timerActive,
-        timerExpiresAt: classTimer.timerExpiresAt,
-        now: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        timeRemaining: timeRemaining,
-        isExpired: timeRemaining <= 0
-      });
-
       if (timeRemaining > 0) {
         const minutes = Math.floor(timeRemaining / (1000 * 60));
         const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
@@ -305,25 +269,11 @@ const Classes: React.FC = () => {
                 // Add null check for assessment.id
                 if (!assessment || assessment.id == null) return false;
                 const assessmentPassed = userProgress?.assessmentCompleted[assessment.id.toString()] || false;
-                console.log(`Class ${classId} - Assessment ${assessment.id} passed (100%):`, assessmentPassed);
                 return assessmentPassed;
               })
             : true;
           const isCompleted = isVideoWatched && allAssessmentsCompleted;
           const isLocked = getClassStatus(classItem, index);
-
-          console.log(`Class ${classId} (${classItem.title}) status:`, {
-            index,
-            isVideoWatched,
-            allAssessmentsCompleted,
-            isCompleted,
-            isLocked,
-            assessments: classItem.assessments.map((a: any) => ({ 
-              id: a.id, 
-              title: a.title,
-              passed: userProgress?.assessmentCompleted[a.id.toString()] 
-            }))
-          });
 
           // Calculate timer value (using timerUpdate to trigger re-renders)
           const timer = userProgress?.classTimers[classId];

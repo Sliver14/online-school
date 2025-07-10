@@ -26,20 +26,77 @@ interface Question {
   correctAnswer: string;
 }
 
-interface AssessmentData {
-  id: number;
-  title: string;
-  questions: Question[];
+interface AssessmentResults {
+  score: number;
+  isPassed: boolean;
+  correctAnswers: number;
+  totalQuestions: number;
+  answers: Record<string, number>;
+  detailedResults: Array<{
+    questionId: number;
+    userAnswer: number;
+    correctAnswer: string;
+    isCorrect: boolean;
+  }>;
+  attemptCount: number;
+  completedAt: string;
 }
 
 interface AssessmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  assessment: AssessmentData;
+  assessment: {
+    id: number;
+    title: string;
+    questions: Question[];
+  } | null;
   onComplete: (answers: Record<string, number>) => Promise<void>;
-  assessmentResults?: any;
-  onRetake?: () => void;
+  assessmentResults: AssessmentResults | null;
+  onRetake: () => void;
 }
+
+// Function to parse markdown-style image links and render them as images
+const parseQuestionText = (text: string) => {
+  // Match markdown-style image links: [alt text](image_url)
+  const imageRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = imageRegex.exec(text)) !== null) {
+    // Add text before the image
+    if (match.index > lastIndex) {
+      parts.push({
+        type: 'text',
+        content: text.slice(lastIndex, match.index)
+      });
+    }
+
+    // Add the image
+    parts.push({
+      type: 'image',
+      alt: match[1],
+      src: match[2]
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text after the last image
+  if (lastIndex < text.length) {
+    parts.push({
+      type: 'text',
+      content: text.slice(lastIndex)
+    });
+  }
+
+  // If no images found, return the original text
+  if (parts.length === 0) {
+    return [{ type: 'text', content: text }];
+  }
+
+  return parts;
+};
 
 const AssessmentModal: React.FC<AssessmentModalProps> = ({
   isOpen,
@@ -153,9 +210,28 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
       </div>
       <div className="space-y-6 mb-6">
         {assessment.questions.map((question, index) => {
-          const userAnswerIndex = assessmentResults?.answers?.[question.id.toString()];
+          // Ensure detailedResults is an array before using find
+          const detailedResultsArray = Array.isArray(assessmentResults?.detailedResults) 
+            ? assessmentResults.detailedResults 
+            : [];
+          
+          console.log('Detailed results array:', detailedResultsArray);
+          console.log('Assessment results:', assessmentResults);
+          
+          // Use index-based matching since detailedResults should be in the same order as questions
+          const detailedResult = detailedResultsArray[index];
+          
+          console.log(`Question ${index + 1} (ID: ${question.id}):`, {
+            detailedResult,
+            userAnswer: detailedResult?.userAnswer,
+            options: question.options,
+            selectedAnswer: detailedResult?.userAnswer !== undefined ? question.options[detailedResult.userAnswer] : 'undefined'
+          });
+          
+          const userAnswerIndex = detailedResult?.userAnswer;
           const userAnswer = userAnswerIndex !== undefined && userAnswerIndex >= 0 ? question.options[userAnswerIndex] : 'No answer selected';
-          const isCorrect = assessmentResults?.detailedResults?.[index]?.isCorrect || false;
+          const isCorrect = detailedResult?.isCorrect || false;
+          const questionParts = parseQuestionText(question.question);
 
           return (
             <div
@@ -173,7 +249,20 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
                   <XCircle className="w-5 h-5" style={{ color: colors.danger }} />
                 )}
                 <h4 className="text-lg font-semibold" style={{ color: colors.text }}>
-                  {question.question}
+                  {questionParts.map((part, partIndex) => (
+                    <React.Fragment key={partIndex}>
+                      {part.type === 'text' ? (
+                        part.content
+                      ) : (
+                        <img
+                          src={part.src}
+                          alt={part.alt}
+                          className="max-w-full h-auto mt-2 mb-2 rounded-lg"
+                          style={{ maxHeight: '300px' }}
+                        />
+                      )}
+                    </React.Fragment>
+                  ))}
                 </h4>
               </div>
               <p className="text-sm" style={{ color: colors.textMuted }}>
@@ -191,35 +280,35 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
           );
         })}
       </div>
-      <div className="flex gap-4 justify-center">
-        <button
-          onClick={handleClose}
-          className="px-6 py-3 rounded-lg text-white font-medium transition-colors hover:opacity-80"
-          style={{ backgroundColor: colors.secondary }}
-        >
-          {assessmentResults?.isPassed ? 'Continue' : 'Close'}
-        </button>
-        {!assessmentResults?.isPassed && onRetake && (
+      <div className="flex justify-center gap-4">
+        {!assessmentResults?.isPassed && (
           <button
             onClick={onRetake}
             className="px-6 py-3 rounded-lg text-white font-medium transition-colors hover:opacity-80"
-            style={{ backgroundColor: colors.accent }}
+            style={{ backgroundColor: colors.warning }}
           >
             Retake Assessment
           </button>
         )}
+        <button
+          onClick={handleClose}
+          className="px-6 py-3 rounded-lg text-white font-medium transition-colors hover:opacity-80"
+          style={{ backgroundColor: colors.accent }}
+        >
+          Close
+        </button>
       </div>
     </div>
   );
 
   const renderLoading = () => (
-    <div className="flex flex-col items-center justify-center py-12">
-      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
+    <div className="text-center py-8">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 mx-auto mb-4" style={{ borderColor: colors.accent }}></div>
       <h3 className="text-xl font-semibold mb-2" style={{ color: colors.text }}>
-        Calculating Your Score...
+        Calculating your score...
       </h3>
-      <p className="text-sm" style={{ color: colors.textMuted }}>
-        Please wait while we process your assessment.
+      <p style={{ color: colors.textMuted }}>
+        Please wait while we process your assessment results.
       </p>
     </div>
   );
@@ -243,40 +332,57 @@ const AssessmentModal: React.FC<AssessmentModalProps> = ({
       </div>
 
       <div className="space-y-6">
-        {assessment.questions.map((question) => (
-          <div
-            key={question.id}
-            className="p-4 rounded-lg border"
-            style={{ borderColor: colors.textMuted, backgroundColor: colors.primary }}
-          >
-            <h3 className="text-xl font-semibold mb-4" style={{ color: colors.text }}>
-              Question: {question.question}
-            </h3>
-            <div className="space-y-3">
-              {question.options?.map((option, optIndex) => (
-                <label
-                  key={optIndex}
-                  className="flex items-center p-4 rounded-lg border cursor-pointer transition-colors hover:bg-gray-800"
-                  style={{
-                    borderColor: answers[question.id.toString()] === optIndex ? colors.accent : '#374151',
-                    backgroundColor: answers[question.id.toString()] === optIndex ? `${colors.accent}20` : colors.primary,
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name={`question-${question.id}`}
-                    value={optIndex}
-                    checked={answers[question.id.toString()] === optIndex}
-                    onChange={() => handleAnswerChange(question.id, optIndex)}
-                    className="mr-3"
-                    style={{ accentColor: colors.accent }}
-                  />
-                  <span style={{ color: colors.text }}>{option}</span>
-                </label>
-              ))}
+        {assessment.questions.map((question, index) => {
+          const questionParts = parseQuestionText(question.question);
+          
+          return (
+            <div
+              key={question.id}
+              className="p-4 rounded-lg border"
+              style={{ borderColor: colors.textMuted, backgroundColor: colors.primary }}
+            >
+              <h3 className="text-xl font-semibold mb-4" style={{ color: colors.text }}>
+                Question {index + 1}: {questionParts.map((part, partIndex) => (
+                  <React.Fragment key={partIndex}>
+                    {part.type === 'text' ? (
+                      part.content
+                    ) : (
+                      <img
+                        src={part.src}
+                        alt={part.alt}
+                        className="max-w-full h-auto mt-2 mb-2 rounded-lg"
+                        style={{ maxHeight: '300px' }}
+                      />
+                    )}
+                  </React.Fragment>
+                ))}
+              </h3>
+              <div className="space-y-3">
+                {question.options?.map((option, optIndex) => (
+                  <label
+                    key={optIndex}
+                    className="flex items-center p-4 rounded-lg border cursor-pointer transition-colors hover:bg-gray-800"
+                    style={{
+                      borderColor: answers[question.id.toString()] === optIndex ? colors.accent : '#374151',
+                      backgroundColor: answers[question.id.toString()] === optIndex ? `${colors.accent}20` : colors.primary,
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name={`question-${question.id}`}
+                      value={optIndex}
+                      checked={answers[question.id.toString()] === optIndex}
+                      onChange={() => handleAnswerChange(question.id, optIndex)}
+                      className="mr-3"
+                      style={{ accentColor: colors.accent }}
+                    />
+                    <span style={{ color: colors.text }}>{option}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6 flex justify-center">
