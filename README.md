@@ -12,6 +12,9 @@ This is an online learning platform built with Next.js, designed to provide a mo
 - Responsive dashboard and sidebar navigation
 - Email notifications
 
+- Optimized loading experience for users
+- Efficient data fetching from the database (Prisma + MySQL)
+
 ## Technologies Used
 
 - **Next.js** (React framework)
