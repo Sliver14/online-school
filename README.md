@@ -1,10 +1,28 @@
 # LoveWorld Foundation School Online
 
-A modern online school platform for LoveWorld Foundation School, enabling students to take classes, watch videos, complete assessments, and track their progress. The platform features secure authentication, class unlocking logic, real-time timers, and a smooth user experience for both web and mobile users.
+A modern online school platform for LoveWorld Foundation School, enabling students to take classes, watch videos, complete assessments, and track their progress. The platform features secure authentication, class unlocking logic, real-time timers, and a smooth user experience for both Desktop and mobile views.
 
 ## Demo
 
-- [Live Demo](https://your-live-link.com)
+- [Live Demo](https://online-school-olive.vercel.app/)
+
+## Screenshots
+
+### Welcome Page
+![Welcome Page](https://res.cloudinary.com/dfi8bpolg/image/upload/v1758575897/gzxqhpop7itbukgan7zx.png)
+
+### Authentication
+![Authentication](https://res.cloudinary.com/dfi8bpolg/image/upload/v1758577427/lphwxvcgzgwspmw1zqb2.png)
+
+### Dashboard
+![Dashboard](https://res.cloudinary.com/dfi8bpolg/image/upload/v1758577088/dbp6teqzzbi6b3vybuxx.png)
+
+### Classes
+![Classes](https://res.cloudinary.com/dfi8bpolg/image/upload/v1758577427/x068uq6y6vra8nwaxnb3.png)
+
+### Assessments
+![Assessments](https://res.cloudinary.com/dfi8bpolg/image/upload/v1758577088/kjretdzhujrjtup0lkkg.png)
+
 
 ## Features
 
@@ -25,7 +43,7 @@ A modern online school platform for LoveWorld Foundation School, enabling studen
 - Node.js + Prisma ORM
 - MySQL
 - React Query & Context API
-- Expo (for mobile apps)
+
 
 ## Installation
 
